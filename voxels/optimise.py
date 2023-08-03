@@ -43,7 +43,7 @@ def extract_avg_steps(path):
     Retrieve the average number of original and skipped steps
     """
     search_string = "Original number, skipped, kept, skipped fraction and kept fraction of steps"
-    extract_start = len(search_string.split()) #whats going on here? 
+    extract_start = len(search_string.split()) 
     steps_orig = []
     steps_skipped = []
     with open(path, "r", encoding="utf8") as step_file:
@@ -212,7 +212,7 @@ def iterate_layers_xy(trial, config):
     save_root_hashmap_file = config["hashmap_file"]
 
     #I hope this works in a similar way but this may be wrong:( 
-    layers = config["search_space"]
+    layers = config["study"]["sampler"]["search_space"]["i_layer_xy"]
 
     #Edit these so it just calls the cpp file directly and makes the circular layer, change so layer is actually just radius (or converetd into a fraction of the radius ig)
     #     make_voxel_layer(trial, nx, ny, nz, save_file_line_by_line)

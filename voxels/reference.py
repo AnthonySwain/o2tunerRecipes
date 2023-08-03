@@ -36,11 +36,13 @@ def baseline(inspectors, config):
 
     cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay --configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file}"'
     run_command(cmd, log_file=config["o2_sim_log"])
+
     extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
     cmd_extract_hits = f"root -l -b -q {extract_hits_root}"
     run_command(cmd_extract_hits, log_file="hits.dat")
     return True
 
+#what is "inspectors" - why is this dependency needed, doesn't it do it again in baseline 6 lines above? 
 def baseline_hits(inspectors, config):
     extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
     cmd_extract_hits = f"root -l -b -q {extract_hits_root}"

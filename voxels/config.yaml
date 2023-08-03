@@ -57,7 +57,7 @@ stages_user:
   baseline_hits:
     python:
       file: reference.py
-      entrypoint: baseline_steps_hits
+      entrypoint: baseline_hits
     config: *global_config
     cwd: *baseline_dir
     deps:
@@ -88,9 +88,8 @@ stages_optimisation:
       storage: sqlite:///opt.db
       sampler:
         name: grid
-        # we assume nX == nY
-        search_space: {"i_layer_xy": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-
+        # we assume nX == nY, why is this needed here and why can't I put it in the global config
+        search_space: {"i_layer_xy": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ,27 ,28,29,30]}
     config: *global_config
     deps:
       - baseline_hits
