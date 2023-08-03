@@ -1,7 +1,7 @@
 global_config: &global_config
   engine: TGeant4
   generator: pythia8pp
-  events: 20
+  events: 5
 
   o2_sim_log: sim.log                                         # the file name to be used to pipe the output of each simulation into
   rel_hits_cutoff: 0.95                                       # desired minimum drop of relative ratio of hits
@@ -9,21 +9,23 @@ global_config: &global_config
   reference_dir: &reference_dir reference                     # the reference directory
   baseline_dir: &baseline_dir baseline                        # the baseline directory
   optimisation_dir: &opt_name optimisation                    # the optimisation directory and name
-  voxels_sampled_file: voxels.dat
+  voxels_sampled_file: voxels.txt
   hashmap_file: hashmap.root
   n_voxels_x: 20
   n_voxels_y: 20
   n_voxels_z: 60
-  root_voxel_macro_full_path: /full/path/to/marco.C
+  CreateHashMapFromTxtMacroFullPath: /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateHashMapFromTxt.C
+  CreateRadialHashMapFullPath : /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateRadialHashMapXY.C
+
 
 
   O2DETECTORS: # all detectors we have
     - ITS
     - TOF
     - EMC
-    - TRD
+    - TRD #doesnt work in analyzeHits.C
     - PHS
-    - FT0
+    - FT0 #doesnt work in analyzeHits.C
     - HMP
     - MFT
     - FDD
@@ -50,7 +52,7 @@ stages_user:
     config: *global_config
     cwd: *baseline_dir
     deps:
-      - reference
+      - reference 
 
   baseline_hits:
     python:
@@ -91,4 +93,4 @@ stages_optimisation:
 
     config: *global_config
     deps:
-      - baseline_steps_hits
+      - baseline_hits
