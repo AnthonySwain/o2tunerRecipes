@@ -40,7 +40,7 @@ def extract_hits(path, o2_detectors, det_name_to_id):
 
 def extract_avg_steps(path):
     """
-    Retrieve the average number of original and skipped steps
+    Retrieve the average number of original and skipped steps over all events 
     """
     search_string = "Original number, skipped, kept, skipped fraction and kept fraction of steps"
     extract_start = len(search_string.split()) 
@@ -58,7 +58,7 @@ def extract_avg_steps(path):
     return sum(steps_orig) / len(steps_orig), sum(steps_skipped) / len(steps_skipped)
 
 
-def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_path, o2_detectors):
+def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_path, o2_detectors,loss_data_save):
     """
     Compute the loss and return steps and hits relative to the baseline
     """
@@ -74,6 +74,16 @@ def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_pa
     steps_remaining = steps[1]
     rel_steps = 1 - (steps_remaining / steps_baseline)
 
+
+    # Write data to the file so it can be easily found post-simulations. 
+    #loss_calc_data_save_filepath = ""
+    with open (loss_data_save, "a") as file:
+        file.write(f"Hits/HitsBase || ")
+        for i, n in enumerate(o2_detectors):
+            file.write(f"{n} : {rel_hits[i]} | ")
+
+        file.write(f"\n Steps/Steps_Base : {rel_steps}")
+
     return rel_steps, rel_hits
 
 
@@ -87,9 +97,9 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
 
     for rvh in rel_hits_valid: #I think i understand the logic but I don't think that this is correct way to do it, 
         if rvh < rel_hits_cutoff:
-            loss += (penalty_below * (rel_hits_cutoff - rvh))**2
+            loss += (penalty_below * (1 - rvh))**2
         else:
-            loss += (rel_hits_cutoff - rvh)**2
+            loss += (1 - rvh)**2
 
     return loss / (len(rel_hits_valid) + 1)
 
@@ -104,18 +114,21 @@ def run_on_batch(config):
     sim_log_baseline = join(baseline_dir, config["o2_sim_log"])
     baseline_hits_file = join(baseline_dir, "hits.dat")
 
+    loss_data_save_file = config['Loss_data_save_file']
+
     # replay the simulation
     cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
           f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}"'
     _, sim_log = run_command(cmd, log_file="sim.log")
 
     # extract the hits using O2 macro and pipe to file
-    extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
+    #extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
+    extract_hits_root = config['analyzeHitsFilePath']
     cmd_extract_hits = f"root -l -b -q {extract_hits_root}"
     _, hit_file = run_command(cmd_extract_hits, log_file="hits.dat")
 
     # compute the loss and further metrics...
-    return compute_metrics(hit_file, baseline_hits_file, sim_log, sim_log_baseline, config["O2DETECTORS"])
+    return compute_metrics(hit_file, baseline_hits_file, sim_log, sim_log_baseline, config["O2DETECTORS"],loss_data_save_file)
 
 
 def sample_voxels(trial, n_voxels, save_file_line_by_line):
@@ -135,7 +148,7 @@ def create_hash_map(macro_path, save_file_line_by_line, nx, ny, nz, save_root_ha
     you would need to run a ROOT macro somewhat like
     """
     
-    CreateHashMap = f"root -l -b -q {macro_path}({save_file_line_by_line},{save_root_hashmap_file},{nx},{ny},{nz})"
+    CreateHashMap = f"root -l -b -q '{macro_path}(\"{save_file_line_by_line}\",\"{save_root_hashmap_file}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
 
@@ -150,12 +163,13 @@ def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,l
     
     #Get the predefined search space from the yaml file/
     layer_i = trial.suggest_categorical("i_layer_xy", layers)
+    print(f"The layer chosen is: {layer_i}")
     NumbLayers = len(layers)
 
     XYmax = 1000 
     minRadius = (XYmax/NumbLayers)*layer_i 
 
-    CreateRadialHashMap = f"root -l -b -q {RadialMacroPath}({RootHashMapSaveLoc},{Nx},{Ny},{Nz},{minRadius})"
+    CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
     _, hashmap_file = run_command(CreateRadialHashMap, log_file="hits.dat")
     
 
@@ -172,6 +186,7 @@ def objective(trial, config):
     # 2. which to switch on
 
     # e.g.
+    penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
@@ -189,7 +204,7 @@ def objective(trial, config):
     annotate_trial(trial, "rel_hits", rel_hits_avg)
     # annotate with other data if you want
 
-    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"])#, penalty below!)
+    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"], penalty_below)
 
 @needs_cwd #what does this decorator do
 def iterate_layers_xy(trial, config):
@@ -206,17 +221,19 @@ def iterate_layers_xy(trial, config):
     # 2. which to switch on
 
     # e.g.
+    penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
     save_root_hashmap_file = config["hashmap_file"]
 
     #I hope this works in a similar way but this may be wrong:( 
-    layers = config["study"]["sampler"]["search_space"]["i_layer_xy"]
+    layers = config["search_space"]["i_layer_xy"]
+    print(f"The number of layers is: {layers}")
 
     #Edit these so it just calls the cpp file directly and makes the circular layer, change so layer is actually just radius (or converetd into a fraction of the radius ig)
     #     make_voxel_layer(trial, nx, ny, nz, save_file_line_by_line)
-    create_hash_map(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,layers)
+    CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,layers)
 
     # rng = np.random.default_rng()
     # batch_id = rng.integers(0, batches)
@@ -227,4 +244,4 @@ def iterate_layers_xy(trial, config):
     annotate_trial(trial, "rel_hits", rel_hits_avg)
     # annotate with other data if you want
 
-    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"])
+    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
