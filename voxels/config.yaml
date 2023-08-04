@@ -5,18 +5,20 @@ global_config: &global_config
 
   o2_sim_log: sim.log                                         # the file name to be used to pipe the output of each simulation into
   rel_hits_cutoff: 0.95                                       # desired minimum drop of relative ratio of hits
+  penalty_below : 50                                         # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat                          # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
   reference_dir: &reference_dir reference                     # the reference directory
   baseline_dir: &baseline_dir baseline                        # the baseline directory
   optimisation_dir: &opt_name optimisation                    # the optimisation directory and name
   voxels_sampled_file: voxels.txt
   hashmap_file: hashmap.root
-  n_voxels_x: 20
-  n_voxels_y: 20
-  n_voxels_z: 60
+  n_voxels_x: 200
+  n_voxels_y: 200
+  n_voxels_z: 600
   CreateHashMapFromTxtMacroFullPath: /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateHashMapFromTxt.C
   CreateRadialHashMapFullPath : /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateRadialHashMapXY.C
-
+  analyzeHitsFilePath : /home/answain/alice/O2/TonysDevelopmentArea/macros/analyzeHits.C
+  Loss_data_save_file : LossCalcData.txt
 
 
   O2DETECTORS: # all detectors we have
@@ -26,7 +28,7 @@ global_config: &global_config
     - TRD #doesnt work in analyzeHits.C
     - PHS
     - FT0 #doesnt work in analyzeHits.C
-    - HMP
+    - HMP 
     - MFT
     - FDD
     - FV0
@@ -72,7 +74,7 @@ stages_optimisation:
     trials: 10  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
-      storage: sqlite:///opt.db
+      storage: #sqlite:///opt.db
     config: *global_config
     deps:
       - baseline_hits
@@ -81,15 +83,18 @@ stages_optimisation:
   iterate_layers_xy:
     file: optimise.py
     objective: iterate_layers_xy
-    jobs: 2     # desired number of jobs
-    trials: 10  # desired number of trials
+    jobs: 6     # desired number of jobs
+    trials: 12  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: iterate_layers_xy
-      storage: sqlite:///opt.db
+      #storage: sqlite:///opt.db
       sampler:
         name: grid
         # we assume nX == nY, why is this needed here and why can't I put it in the global config
-        search_space: {"i_layer_xy": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ,27 ,28,29,30]}
-    config: *global_config
+        search_space: &search_space
+          i_layer_xy: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ,27 ,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99]
+    config:
+      <<: *global_config
+      search_space: *search_space
     deps:
       - baseline_hits
