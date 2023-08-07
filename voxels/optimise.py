@@ -2,6 +2,7 @@
 The cut tuning optimisation run
 """
 
+
 import sys
 from os.path import join, abspath
 from os import environ
@@ -186,6 +187,31 @@ def objective(trial, config):
     # 2. which to switch on
 
     # e.g.
+    penalty_below = config["penalty_below"]
+    nx = config["n_voxels_x"]
+    ny = config["n_voxels_y"]
+    nz = config["n_voxels_z"]
+    save_file_line_by_line = config["voxels_sampled_file"]
+    save_root_hashmap_file = config["hashmap_file"]
+    sample_voxels(trial, nx * ny * nz, save_file_line_by_line)
+    create_hash_map(config["CreateHashMapFromTxtMacroFullPath"], save_file_line_by_line, nx, ny, nz, save_root_hashmap_file)
+
+    # rng = np.random.default_rng()
+    # batch_id = rng.integers(0, batches)
+    rel_steps_avg, rel_hits_avg = run_on_batch(config)
+
+    # annotate drawn space and metrics to trial so we can re-use it
+    annotate_trial(trial, "rel_steps", rel_steps_avg)
+    annotate_trial(trial, "rel_hits", rel_hits_avg)
+    # annotate with other data if you want
+
+    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"], penalty_below)
+    
+
+@needs_cwd
+def genetic(trial,config):
+    '''Genetic algorithm implementation for the optimisation'''
+
     penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]

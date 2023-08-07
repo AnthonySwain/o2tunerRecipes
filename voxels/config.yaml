@@ -1,7 +1,7 @@
 global_config: &global_config
   engine: TGeant4
   generator: pythia8pp
-  events: 5
+  events: 10
 
   o2_sim_log: sim.log                                         # the file name to be used to pipe the output of each simulation into
   rel_hits_cutoff: 0.95                                       # desired minimum drop of relative ratio of hits
@@ -84,17 +84,43 @@ stages_optimisation:
     file: optimise.py
     objective: iterate_layers_xy
     jobs: 6     # desired number of jobs
-    trials: 12  # desired number of trials
+    trials: 25  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: iterate_layers_xy
       #storage: sqlite:///opt.db
       sampler:
         name: grid
-        # we assume nX == nY, why is this needed here and why can't I put it in the global config
-        search_space: &search_space
-          i_layer_xy: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ,27 ,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99]
+        args:
+          # we assume nX == nY
+          search_space: &search_space
+            i_layer_xy: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ,27 ,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99]
     config:
       <<: *global_config
       search_space: *search_space
     deps:
       - baseline_hits
+
+  genetic:
+    file: optimise.py
+    objective: genetic
+    jobs: 6
+    trials: 1000
+    study:
+      name: genetic
+      sampler:
+        name: NSGAII
+        args:
+          population_size: 50
+          #mutation_prob: 0.01
+          #crossover: 
+          #crossover_prob:
+          #swapping_prob:
+
+
+  #evaluate:
+  #  python:
+  #    file: evaluate.py
+  #    entrypoint: evaluate
+  #  optimisations:
+  #    - optimisation
+  #  config: *global_config
