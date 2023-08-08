@@ -1,5 +1,0 @@
-global_config: &global_config
-  DBFilepath : iterate_layers_xy.db
-  keep_percent : 0.2
-  mutation_rate : 0.1
-  saveNewMaps : /NewVoxelMaps

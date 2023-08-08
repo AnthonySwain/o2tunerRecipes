@@ -8,13 +8,22 @@ from os import environ
 import random
 import os
 import numpy as np 
+import shutil
+import re
 
-def saveastxt(list,save_path):
-    HashMapToSave = ''.join(str(i) for i in list)
 
-    with open(save_path, "w") as file:
-        file.write(HashMapToSave)
+#from o2tuner.system import run_command
+#from o2tuner.config import resolve_path
 
+def saveastxt(filename, input_list):
+    concatenated_string = ''.join(map(str, input_list))
+    try:
+        with open(filename, 'w') as file:
+
+            file.write(concatenated_string)
+
+    except Exception as e:
+        print("Error while saving the file:", e)
 
 def mutate(mutation_rate,voxel):
     '''mutation_rate = %chance of a value flip for each element'''
@@ -33,7 +42,6 @@ def mutate(mutation_rate,voxel):
                 voxel[i] = True
 
     return voxel
-
 
 def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc,parentnumb1,parentnumb2):
     '''Reads 2 voxelfilepaths given, breeds them and saves them to a place.
@@ -116,40 +124,140 @@ def GetBestLossFunctions(FilePathToDB, keep_percent): #keep_percent - the percen
 
     return voxel_filepaths
 
+def relocate_files(filepaths, destination_folder):
+    '''Relocates (by copy & paste) files to a new location'''
+    for i in range(len(filepaths)):
+        if filepaths[i].endswith(".txt"):
+            try:
+                filename = os.path.basename(filepaths[i])
+                new_filepath = os.path.join(destination_folder, f"hashmap{i}.txt")
+                shutil.copy(filepaths[i], new_filepath)
+                print(f"Copied {filepaths[i]} to {new_filepath}")
+            except Exception as e:
+                print(f"Error copying {filepaths[i]}: {e}")
 
-def genetic_optimisation():
+def next_gen(config):
+    '''Calculates and saves the next generation of hashmaps'''
+
     #Insert config into above from yaml file
     #FilePathToDB = config['DBFilepath']
-    #keep_percent = config['KeepPercent']
-    #mutation_rate = config['mutation_rate']
-    #save_loc = config['saveNewMaps']
-    
-    save_loc = "/children"
+    keep_percent = config['KeepPercent']
+    mutation_rate = config['mutation_rate']
+    save_loc_breed = config['saveBredMaps']
+    save_loc_all = config['saveNextGen'] #some way of working out the generation number! 
+    save_loc_breed = "/children"
+    population = config['population']
+    fill_percent = config['fill_percent']
 
-    if (os.path.exists(save_loc)==False):
-        os.mkdir(save_loc)
+    nx = config['n_voxels_x']
+    ny = config['n_voxels_y']
+    nz = config['n_voxels_z']
 
-    FilePathToDB = "/home/answain/alice/o2tunerRecipes/voxels/iterate_layers_xy.db"
-    keep_percent = 0.2
-    mutation_rate = 0.2
+    #Checks if there was a previous generation 
+    current_generation = current_gen()
+    if (current_generation == None) or (current_generation == 0):
+        previous_generation = 0
+        current_generation = 0
+    else:
+        previous_generation = current_generation - 1 
 
-    #works
-    elite_filepaths = GetBestLossFunctions(FilePathToDB,keep_percent)
-    
-    #Breed them! 
-    bred_filepaths = []
-    for i in range(len(elite_filepaths)):
-        for j in range(len(elite_filepaths)):
-            if (j <= i):
-                continue
+    if (os.path.exists(save_loc_breed)==False):
+        os.mkdir(save_loc_breed)
 
-            bred_filepaths.append(breed(mutation_rate, elite_filepaths[i],elite_filepaths[j],save_loc,i,j))
-            
+    if (os.path.exists(save_loc_all)==False):
+        os.mkdir(save_loc_all)
+
+    #If there was a previous generation, make the next one
+    if (current_generation > 0):
+        FilePathToDB = f"../generation_{previous_generation}/voxels_test/genetic/genetic.db"
+        elite_filepaths = GetBestLossFunctions(FilePathToDB,keep_percent)
+        #works
     
-    new_voxel_map_filepaths = elite_filepaths + bred_filepaths
+        #Breed them! 
+        bred_filepaths = []
+        for i in range(len(elite_filepaths)):
+            for j in range(len(elite_filepaths)):
+                
+                if (j <= i):
+                    continue
+
+                bred_filepaths += breed(mutation_rate, elite_filepaths[i],elite_filepaths[j],save_loc_breed,i,j)
+                
+        #Gets all the filepaths of the new hashmap.txt files
+        new_voxel_map_filepaths = elite_filepaths + bred_filepaths
+
+        #Relocates them all to the same single folder. 
+        relocate_files(new_voxel_map_filepaths, save_loc_all)
+
+        #Also should put a function which copy pastes the reference and base into the new generational folder:) 
+
+    #Create a new generation if there wasn't a previous one. 
+    else:
+        initialise_generation(population,nx*ny*nz,fill_percent, save_loc_all)
+        pass
     
+def current_gen():
+    '''Scans one above the current working directory for generation_x folders, the one with the highest value x is taken as the previous geneartion  (returns 0 if there was none -> means to initialise a new gen)'''
+    target_prefix = "generation"
+    parent_directory = os.path.dirname(os.getcwd())
+
+    matching_folders = find_folders_with_prefix(parent_directory, target_prefix)
+    
+    prev_gen = extract_highest_number(matching_folders)
+    return prev_gen 
+
+def extract_highest_number(strings):
+    highest_number = None
+
+    for string in strings:
+        match = re.search(r'\d+$', string)
+        if match:
+            number = int(match.group())
+            if highest_number is None or number > highest_number:
+                highest_number = number
+
+    return highest_number
+
+def find_folders_with_prefix(parent_folder, prefix):
+    matching_folders = []
+
+    for folder_name in os.listdir(parent_folder):
+        folder_path = os.path.join(parent_folder, folder_name)
+        if os.path.isdir(folder_path) and folder_name.startswith(prefix):
+            matching_folders.append(folder_path)
+
+    return matching_folders
+
+def initialise_generation(population, length, fill_percent, folder):
+    '''
+    Initialises a new generation of maps
+    population = how many maps to create
+    length = length of the binary string
+    fill = % of map that will be 1's 
+    '''
+
+    #Better to work in absoloute filepaths 
+    #folder = "/HashMaps"
+    
+    if (os.path.exists(folder)==False):
+        os.mkdir(folder)
+
+    for i in range(population):
+        array = generate_array_with_percentage(length,fill_percent)
+        filepath = f"{folder}/hashmap{i}.txt"
+        saveastxt(filepath,array)
+
   
+def generate_array_with_percentage(size, percentage):
+    num_ones = int(size * (percentage / 100))
+    num_zeros = size - num_ones
 
+    ones_array = np.ones(num_ones, dtype=int)
+    zeros_array = np.zeros(num_zeros, dtype=int)
 
-genetic_optimisation()
+    combined_array = np.concatenate((ones_array, zeros_array))
+    np.random.shuffle(combined_array)
+
+    return combined_array
+
 

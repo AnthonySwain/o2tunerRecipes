@@ -20,6 +20,8 @@ global_config: &global_config
   analyzeHitsFilePath : /home/answain/alice/O2/TonysDevelopmentArea/macros/analyzeHits.C
   Loss_data_save_file : LossCalcData.txt
 
+  saveNextGen : /HashMaps
+
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -65,7 +67,21 @@ stages_user:
     deps:
       - baseline
 
-
+  next_gen:
+    python:
+      file: genetic.py
+      entrypoint: next_gen
+    config :
+      <<: *global_config
+      DBFilepath : iterate_layers_xy.db
+      KeepPercent : 0.2
+      mutation_rate : 0.1
+      saveBredMaps : /Children
+      population : 100
+      fill_percent : 10
+ 
+    
+  
 stages_optimisation:
   optimisation:
     file: optimise.py
@@ -78,7 +94,6 @@ stages_optimisation:
     config: *global_config
     deps:
       - baseline_hits
-
 
   iterate_layers_xy:
     file: optimise.py
@@ -101,16 +116,26 @@ stages_optimisation:
       - baseline_hits
 
   genetic:
-    file: optimise.py
+    file: genetic.py
     objective: genetic
-    jobs: 6
-    trials: 1000
-    study:
-      name: genetic
-      sampler:
-        name: NSGAII
-        args:
-          population_size: 50
+    jobs: 1
+    trials: 100
+    config :
+      <<: *global_config
+      DBFilepath : iterate_layers_xy.db
+      KeepPercent : 0.2
+      mutation_rate : 0.1
+      
+    deps:
+      - next_gen
+    
+    
+    #study:
+    #  name: genetic
+    #  sampler:
+    #    name: NSGAII
+    #    args:
+    #     population_size: 50
           #mutation_prob: 0.01
           #crossover: 
           #crossover_prob:

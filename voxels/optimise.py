@@ -142,14 +142,14 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line):
             f.write(str(on_or_off)) #writing as a string -> is there a better way?:) 
 
 
-def create_hash_map(macro_path, save_file_line_by_line, nx, ny, nz, save_root_hashmap_file):
+def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_roothashmap_saveloc):
     """
     extract list from save_file, construct hash map and save to save_root_hashmap_file
 
     you would need to run a ROOT macro somewhat like
     """
     
-    CreateHashMap = f"root -l -b -q '{macro_path}(\"{save_file_line_by_line}\",\"{save_root_hashmap_file}\",{nx},{ny},{nz})'"
+    CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_roothashmap_saveloc}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
 
@@ -216,10 +216,10 @@ def genetic(trial,config):
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
-    save_file_line_by_line = config["voxels_sampled_file"]
-    save_root_hashmap_file = config["hashmap_file"]
-    sample_voxels(trial, nx * ny * nz, save_file_line_by_line)
-    create_hash_map(config["CreateHashMapFromTxtMacroFullPath"], save_file_line_by_line, nx, ny, nz, save_root_hashmap_file)
+
+    #Insert a way of getting the hashmap! (call it hashmap.root when it's moved into the folder.)
+    get_hash_map_filepaths = ""
+    #choose the corresponding one to the trial number! 
 
     # rng = np.random.default_rng()
     # batch_id = rng.integers(0, batches)
@@ -230,7 +230,8 @@ def genetic(trial,config):
     annotate_trial(trial, "rel_hits", rel_hits_avg)
     # annotate with other data if you want
 
-    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"], penalty_below)
+    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
+
 
 @needs_cwd #what does this decorator do
 def iterate_layers_xy(trial, config):
