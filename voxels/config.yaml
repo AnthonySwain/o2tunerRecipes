@@ -83,7 +83,7 @@ stages_optimisation:
   iterate_layers_xy:
     file: optimise.py
     objective: iterate_layers_xy
-    jobs: 6     # desired number of jobs
+    jobs: 1    # desired number of jobs
     trials: 25  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: iterate_layers_xy

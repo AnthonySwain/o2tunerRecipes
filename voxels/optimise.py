@@ -255,7 +255,7 @@ def iterate_layers_xy(trial, config):
 
     #I hope this works in a similar way but this may be wrong:( 
     layers = config["search_space"]["i_layer_xy"]
-    print(f"The number of layers is: {layers}")
+    #print(f"The number of layers is: {layers}")
 
     #Edit these so it just calls the cpp file directly and makes the circular layer, change so layer is actually just radius (or converetd into a fraction of the radius ig)
     #     make_voxel_layer(trial, nx, ny, nz, save_file_line_by_line)

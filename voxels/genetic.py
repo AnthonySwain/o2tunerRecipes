@@ -6,6 +6,8 @@ import sys
 from os.path import join, abspath
 from os import environ
 import random
+import os
+import numpy as np 
 
 def saveastxt(list,save_path):
     HashMapToSave = ''.join(str(i) for i in list)
@@ -16,18 +18,24 @@ def saveastxt(list,save_path):
 
 def mutate(mutation_rate,voxel):
     '''mutation_rate = %chance of a value flip for each element'''
-    for i in range(len(voxel)):
-        if random.random() < mutation_rate:
-
-            #Flip the bool value
+    mean = mutation_rate
+    std_dev = mutation_rate
+    num_samples = 1
+    how_many_mutations = np.random.Generator.normal(mean, std_dev, num_samples)
+    
+    which_elements_mutated = np.random.randint(0, len(voxel), size=how_many_mutations)
+    
+    #Flip the voxel value!
+    for i in which_elements_mutated:
             if voxel[i]:
                 voxel[i] = False
             else: 
                 voxel[i] = True
+
     return voxel
 
 
-def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc):
+def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc,parentnumb1,parentnumb2):
     '''Reads 2 voxelfilepaths given, breeds them and saves them to a place.
     Can call mutate() during the function to add mutations. '''
 
@@ -46,16 +54,20 @@ def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc):
     child1 = voxel1[:crossover_point] + voxel2[crossover_point:]
     child2 = voxel2[:crossover_point] + voxel1[crossover_point:]
 
-    #Implement a proper save location
-    save_path1 = save_loc
-    save_path2 = save_loc
+    #Mutate!
+    child1 = mutate(mutation_rate,child1)
+    child2 = mutate(mutation_rate,child2)
 
-    #Current implementation is slow:(
-    #child1 = mutate(mutation_rate,child1)
-    #child2 = mutate(mutation_rate,child2)
+    #Where to save the children
+    save_path1 = save_loc + "/child1of" + str(parentnumb1) + str(parentnumb2) + ".txt" 
+    save_path2 = save_loc + "/child2of" + str(parentnumb1) + str(parentnumb2) + ".txt"
 
+    #Saves the children
     saveastxt(child1,save_path1)
     saveastxt(child2,save_path2)
+
+    #Returns the filepaths of the children
+    return [save_path1,save_path2]
 
 def GetBestLossFunctions(FilePathToDB, keep_percent): #keep_percent - the percentage of trials to keep and breed. 
     '''Open a DB file, find the best loss functions of a generation and get the corresponding
@@ -106,24 +118,37 @@ def GetBestLossFunctions(FilePathToDB, keep_percent): #keep_percent - the percen
 
 
 def genetic_optimisation():
+    #Insert config into above from yaml file
     #FilePathToDB = config['DBFilepath']
     #keep_percent = config['KeepPercent']
     #mutation_rate = config['mutation_rate']
     #save_loc = config['saveNewMaps']
     
-    save_loc = ""
+    save_loc = "/children"
+
+    if (os.path.exists(save_loc)==False):
+        os.mkdir(save_loc)
 
     FilePathToDB = "/home/answain/alice/o2tunerRecipes/voxels/iterate_layers_xy.db"
     keep_percent = 0.2
     mutation_rate = 0.2
 
     #works
-    voxel_filepaths = GetBestLossFunctions(FilePathToDB,keep_percent)
+    elite_filepaths = GetBestLossFunctions(FilePathToDB,keep_percent)
     
-    voxel_filepaths = ['sometext.txt', 'sometext2.txt']
+    #Breed them! 
+    bred_filepaths = []
+    for i in range(len(elite_filepaths)):
+        for j in range(len(elite_filepaths)):
+            if (j <= i):
+                continue
 
-    breed(mutation_rate, voxel_filepaths[0], voxel_filepaths[1],save_loc)
-
+            bred_filepaths.append(breed(mutation_rate, elite_filepaths[i],elite_filepaths[j],save_loc,i,j))
+            
+    
+    new_voxel_map_filepaths = elite_filepaths + bred_filepaths
+    
+  
 
 
 genetic_optimisation()
