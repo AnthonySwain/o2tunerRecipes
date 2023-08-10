@@ -6,7 +6,8 @@ The cut tuning optimisation run
 import sys
 from os.path import join, abspath
 from os import environ
-
+import os
+import shutil
 from o2tuner.system import run_command
 from o2tuner.utils import annotate_trial
 from o2tuner.optimise import optimise
@@ -58,7 +59,6 @@ def extract_avg_steps(path):
         sys.exit(1)
     return sum(steps_orig) / len(steps_orig), sum(steps_skipped) / len(steps_skipped)
 
-
 def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_path, o2_detectors,loss_data_save):
     """
     Compute the loss and return steps and hits relative to the baseline
@@ -87,14 +87,13 @@ def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_pa
 
     return rel_steps, rel_hits
 
-
 def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
     """
     Compute the loss and return steps and hits relative to the baseline
     """
     rel_hits_valid = [rh for rh in rel_hits if rh is not None] #Gets rid of hits that just say none, need to look into why some say none...
     
-    loss = rel_steps**2 #this isn't correct if we want to maximise rel_steps ? -> Misleading name. 1- steps/stepsbase
+    loss = rel_steps**2 
 
     for rvh in rel_hits_valid: #I think i understand the logic but I don't think that this is correct way to do it, 
         if rvh < rel_hits_cutoff:
@@ -103,7 +102,6 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
             loss += (1 - rvh)**2
 
     return loss / (len(rel_hits_valid) + 1)
-
 
 def run_on_batch(config):
     # in the reference directory we have the MCStepoLoggerOutput.root file
@@ -131,7 +129,6 @@ def run_on_batch(config):
     # compute the loss and further metrics...
     return compute_metrics(hit_file, baseline_hits_file, sim_log, sim_log_baseline, config["O2DETECTORS"],loss_data_save_file)
 
-
 def sample_voxels(trial, n_voxels, save_file_line_by_line):
     """
     create a simple text file, each line with 0 or 1
@@ -140,7 +137,6 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line):
         for nv in range(n_voxels):
             on_or_off = trial.suggest_categorical(f"voxel_{nv}", [0, 1]) #trial.suggest_catergorical <- what does this do?
             f.write(str(on_or_off)) #writing as a string -> is there a better way?:) 
-
 
 def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_roothashmap_saveloc):
     """
@@ -152,8 +148,6 @@ def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_roothashmap_sav
     CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_roothashmap_saveloc}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
-
-
 def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,layers):
     """
     figure out the voxels that belong to layer i
@@ -163,7 +157,16 @@ def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,l
     # this will be sampled from the predefined search space. Here, None is simply a placeholder
     
     #Get the predefined search space from the yaml file/
-    layer_i = trial.suggest_categorical("i_layer_xy", layers)
+
+    #######################################################################
+    trial_numb = trial.number
+    if ((len(layers)) > (trial_numb + 50)): #this is temporary! 
+    
+        layer_i = layers[trial_numb + 50] 
+    
+    else:
+        layer_i = trial.suggest_categorical("i_layer_xy", layers)
+    #######################################################################
     print(f"The layer chosen is: {layer_i}")
     NumbLayers = len(layers)
 
@@ -173,6 +176,16 @@ def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,l
     CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
     _, hashmap_file = run_command(CreateRadialHashMap, log_file="hits.dat")
     
+def relocate_file(filepath, destination):
+    '''Relocates (by copy & paste) files to a new location'''
+    if filepath.endswith(".txt"):
+        try:
+            filename = os.path.basename(filepath)
+            #new_filepath = os.path.join(destination_folder, f"hashmap_{i}.txt")
+            shutil.copy(filepath, destination)
+            #print(f"Copied {filepath} to {destination}")
+        except Exception as e:
+            print(f"Error copying {filepath}: {e}")
 
 @needs_cwd #what does this decorator do
 def objective(trial, config):
@@ -216,9 +229,21 @@ def genetic(trial,config):
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
+    save_root_hashmap_file = config["hashmap_file"]
+    move_txt_to = config["voxels_sampled_file"]
 
-    #Insert a way of getting the hashmap! (call it hashmap.root when it's moved into the folder.)
-    get_hash_map_filepaths = ""
+    #Get trial numb
+    trial_numb = trial.number
+    print(trial_numb) 
+
+    #Insert a way of getting the hashmap for each trial! (call it hashmap.root when it's moved into the folder.)
+    hash_map_txt_filepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),f"next_gen/HashMaps/hashmap_{trial_numb}.txt")
+    #print(hash_map_txt_filepath)
+    
+    relocate_file(hash_map_txt_filepath,f"{os.getcwd()}/{move_txt_to}")
+    create_hash_map(config["CreateHashMapFromTxtMacroFullPath"],move_txt_to,nx,ny,nz,save_root_hashmap_file)
+
+    
     #choose the corresponding one to the trial number! 
 
     # rng = np.random.default_rng()

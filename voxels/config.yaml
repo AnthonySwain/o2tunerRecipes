@@ -4,7 +4,6 @@ global_config: &global_config
   events: 10
 
   o2_sim_log: sim.log                                         # the file name to be used to pipe the output of each simulation into
-  rel_hits_cutoff: 0.95                                       # desired minimum drop of relative ratio of hits
   penalty_below : 50                                         # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat                          # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
   reference_dir: &reference_dir reference                     # the reference directory
@@ -20,7 +19,7 @@ global_config: &global_config
   analyzeHitsFilePath : /home/answain/alice/O2/TonysDevelopmentArea/macros/analyzeHits.C
   Loss_data_save_file : LossCalcData.txt
 
-  saveNextGen : /HashMaps
+  saveNextGen : HashMaps
 
 
   O2DETECTORS: # all detectors we have
@@ -73,13 +72,12 @@ stages_user:
       entrypoint: next_gen
     config :
       <<: *global_config
-      DBFilepath : iterate_layers_xy.db
-      KeepPercent : 0.2
-      mutation_rate : 0.1
-      saveBredMaps : /Children
-      population : 100
-      fill_percent : 10
- 
+      DBFilepath : genetic.db
+      KeepPercent : 0.1
+      mutation_rate_percentage : 0.0001
+      saveBredMaps : Children
+      population : 100 #need to link this to the number of trials in the genetic optimisation
+      fill_percent : 0.01 
     
   
 stages_optimisation:
@@ -91,7 +89,9 @@ stages_optimisation:
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
       storage: #sqlite:///opt.db
-    config: *global_config
+    config: 
+      << : *global_config
+      rel_hits_cutoff: 0.95    # desired minimum drop of relative ratio of hits  
     deps:
       - baseline_hits
 
@@ -112,22 +112,21 @@ stages_optimisation:
     config:
       <<: *global_config
       search_space: *search_space
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
     deps:
       - baseline_hits
 
   genetic:
-    file: genetic.py
+    file: optimise.py
     objective: genetic
     jobs: 1
     trials: 100
-    config :
+    config : 
       <<: *global_config
-      DBFilepath : iterate_layers_xy.db
-      KeepPercent : 0.2
-      mutation_rate : 0.1
-      
+      rel_hits_cutoff: 0.95     # desired minimum drop of relative ratio of hits 
     deps:
       - next_gen
+      - baseline_hits
     
     
     #study:
