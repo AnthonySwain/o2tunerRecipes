@@ -17,6 +17,7 @@ import math
 #from o2tuner.config import resolve_path
 
 def saveastxt(filename, input_list):
+    '''Saves a mapping to a .txt file'''
     concatenated_string = ''.join(map(str, input_list))
     try:
         with open(filename, 'w') as file:
@@ -27,7 +28,10 @@ def saveastxt(filename, input_list):
         print("Error while saving the file:", e)
 
 def mutate(mutation_rate,voxel):
-    '''mutation_rate = %chance of a value flip for each element'''
+    '''
+    mutates the mapping
+    mutation_rate = mean %chance of a value flip for each element
+    voxel = list of values'''
     mean = mutation_rate/100
     num_samples = 1
     how_many_mutations = math.ceil(np.random.exponential(mean*len(voxel), num_samples))
@@ -46,9 +50,15 @@ def mutate(mutation_rate,voxel):
 
 def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc,parentnumb1,parentnumb2):
     '''Reads 2 voxelfilepaths given, breeds them and saves them to a place.
-    Can call mutate() during the function to add mutations. '''
+    Can call mutate() during the function to add mutations. 
+    mutation_rate = average %chance of a single element mutating
+    voxel_filepath1/2 = filepaths of the parents
+    save_loc = where to save the children
+    parentnumb1/2 = just some unique values to identify the children / give them a unique name
+    'oh childof0120.txt have you grown!' 
+    '''
 
-    #Read each voxelmap. 
+    #Read each voxelmap and make them a np.array
     with open(voxel_filepath1, 'r') as voxelmap1:
         voxel1 = voxelmap1.read().strip()
 
@@ -59,10 +69,12 @@ def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc,parentnumb1,
 
     voxel2= np.array(list(voxel2), dtype=int)
 
-    #these should be the same length and this will be assumed. 
+
+    #the maps should be the same length and this will be assumed. 
     length1 = len(voxel1)
     length2 = len(voxel2)
 
+    #Breed
     crossover_point = random.randint(1, length1 - 1)
     child1 = np.append(voxel1[:crossover_point],voxel2[crossover_point:])
     child2 = np.append(voxel2[:crossover_point], voxel1[crossover_point:])
@@ -77,19 +89,23 @@ def breed(mutation_rate, voxel_filepath1, voxel_filepath2, save_loc,parentnumb1,
     save_path1 = join(cwd,save_loc,f"child1of{str(parentnumb1)}{str(parentnumb2)}.txt")
     save_path2 = join(cwd,save_loc,f"child2of{str(parentnumb1)}{str(parentnumb2)}.txt")
    
-    #Saves the children
+    #Saves the children (our hero!)
     np.savetxt(save_path1, child1, fmt='%d', delimiter='', newline='')
     np.savetxt(save_path2, child2, fmt='%d', delimiter='', newline='')
-    #saveastxt(child1,save_path1)
-    #saveastxt(child2,save_path2)
 
     #Returns the filepaths of the children
     return [save_path1,save_path2]
 
-def GetBestLossFunctions(FilePathToDB, PathToTrials,keep_percent): #keep_percent - the percentage of trials to keep and breed. 
-    '''Open a DB file, find the best loss functions of a generation and get the corresponding
-    filepaths to the voxels.txt file for each trial'''
+def GetBestLossFunctions(FilePathToDB, PathToTrials,keep_percent): 
+    '''
+    Open a DB file, finds the best loss functions of a generation and gets the corresponding
+    filepaths to the voxels.txt file for each trial and returns these as a list
 
+    FilePathToDB = says what it does on the tin
+    PathToTrials = path to where the trials of the previous generation were ran
+    keep_percent - the percentage of trials to keep and additionaly breed. (i.e the top x% is kept, but they are also bred to get some kids) 
+    '''
+    
     '''Some SQL to get a list of filepaths of the best % of loss functions'''
     voxel_filepaths = []
     db = sqlite3.connect(FilePathToDB) #Open DB
@@ -137,11 +153,14 @@ def GetBestLossFunctions(FilePathToDB, PathToTrials,keep_percent): #keep_percent
     return voxel_filepaths
 
 def relocate_files(filepaths, destination_folder):
-    '''Relocates (by copy & paste) files to a new location'''
+    '''
+    Relocates (by copy & paste) files to a new location
+    filepaths = list of filepaths we want to relocate
+    destination_folder = where to locate them to
+    '''
     for i in range(len(filepaths)):
         if filepaths[i].endswith(".txt"):
             try:
-                filename = os.path.basename(filepaths[i])
                 new_filepath = os.path.join(os.getcwd(),destination_folder, f"hashmap_{i}.txt")
                 shutil.copy(filepaths[i], new_filepath)
                 print(f"Copied {filepaths[i]} to {new_filepath}")
@@ -149,9 +168,11 @@ def relocate_files(filepaths, destination_folder):
                 print(f"Error copying {filepaths[i]}: {e}")
 
 def next_gen(inspectors, config):
-    '''Calculates and saves the next generation of hashmaps'''
+    '''
+    Calculates and saves the next generation of hashmaps for the genetic algorithm
+    '''
 
-    #Insert config into above from yaml file
+    #Gets required info from .yaml file
     #FilePathToDB = config['DBFilepath']
     keep_percent = config['KeepPercent']
     mutation_rate = config['mutation_rate_percentage']
@@ -159,10 +180,10 @@ def next_gen(inspectors, config):
     save_loc_all = config['saveNextGen'] #some way of working out the generation number! 
     population = config['population']
     fill_percent = config['fill_percent']
-
     nx = config['n_voxels_x']
     ny = config['n_voxels_y']
     nz = config['n_voxels_z']
+
 
     #Checks if there was a previous generation 
     current_generation = current_gen()
@@ -172,8 +193,8 @@ def next_gen(inspectors, config):
     else:
         previous_generation = current_generation - 1 
 
+    #Creates a directory for the next gen of hashmaps 
     cwd = os.getcwd()
-
     if (os.path.exists(cwd+save_loc_all)==False):
         os.mkdir(cwd+"/"+save_loc_all)
 
@@ -181,6 +202,7 @@ def next_gen(inspectors, config):
     if (current_generation > 0):
         print(f"Current generation = {current_generation}. Creating the next_gen of hashmaps from generation {previous_generation}.")
         
+        #Creates directory for the children
         if (os.path.exists(cwd+save_loc_breed)==False):
             os.mkdir(cwd+"/"+save_loc_breed)
 
@@ -188,28 +210,23 @@ def next_gen(inspectors, config):
         prev_gen = join(base_dir,f"generation_{previous_generation}")
         PathToPrevTrials = join(prev_gen,"voxels_test","genetic")
         FilePathToDB = join(PathToPrevTrials,"genetic.db")
-        print(FilePathToDB)
-        #FilePathToDB = f"../../../generation_{previous_generation}/voxels_test/genetic/genetic.db"
+        
+        #Gets the best loss functions from the prev generation
         elite_filepaths = GetBestLossFunctions(FilePathToDB,PathToPrevTrials,keep_percent)
-        #works
 
-        #Breed them! 
+        #Breed the best! (breeds all the best filepaths with eachother)
         bred_filepaths = []
         for i in range(len(elite_filepaths)):
-            
             for j in range(len(elite_filepaths)):
-
-                
                 if (j <= i):
                     continue
                 print(f"Breeding {i} with {j}.")
                 bred_filepaths += breed(mutation_rate, elite_filepaths[i],elite_filepaths[j],save_loc_breed,i,j)
                 
-        #Gets all the filepaths of the new hashmap.txt files
+        #Gets all the filepaths of the new hashmap.txt files in the same list
         new_voxel_map_filepaths = elite_filepaths + bred_filepaths
 
         #Relocates them all to the same single folder. 
-
         #Should just put the children in this place in the first place to prevent unneccessary copying / savetime
         relocate_files(new_voxel_map_filepaths, save_loc_all)
 
@@ -222,9 +239,13 @@ def next_gen(inspectors, config):
 
     return(True)
     
-    
 def current_gen():
-    '''Scans one above the current working directory for generation_x folders, the one with the highest value x is taken as the previous geneartion  (returns 0 if there was none -> means to initialise a new gen)'''
+    '''
+    Scans one above the current working directory for generation_x folders, 
+    the one with the highest value x is taken as the previous geneartion 
+    (returns 0 if there was none -> means to initialise a new gen)
+    '''
+
     target_prefix = "generation"
     parent_directory = os.path.dirname(os.path.dirname(os.path.dirname(os.getcwd()))) #don't judge me
 
@@ -234,6 +255,9 @@ def current_gen():
     return current_gen 
 
 def extract_highest_number(strings):
+    '''
+    Finds the highest number at the end of a string in a list of strings
+    '''
     highest_number = None
 
     for string in strings:
@@ -246,6 +270,9 @@ def extract_highest_number(strings):
     return highest_number
 
 def find_folders_with_prefix(parent_folder, prefix):
+    '''
+    Finds folders that start with 'prefix'
+    '''
     matching_folders = []
 
     for folder_name in os.listdir(parent_folder):
@@ -258,6 +285,7 @@ def find_folders_with_prefix(parent_folder, prefix):
 def initialise_generation(population, length, fill_percent, folder):
     '''
     Initialises a new generation of maps
+
     population = how many maps to create
     length = length of the binary string
     fill = % of map that will be 1's 
@@ -275,9 +303,10 @@ def initialise_generation(population, length, fill_percent, folder):
         saveastxt(filepath,array)
 
 def generate_array_with_percentage(size, percentage):
-    
+    '''
+    Generates an array of 0/1s with the average number of 1s total being size*percentage 
+    '''
     fill = np.random.exponential(size*percentage/100, 1)
-    print(fill)
     num_ones = int(fill)
     num_zeros = size - num_ones
 
@@ -290,7 +319,6 @@ def generate_array_with_percentage(size, percentage):
     combined_array = np.concatenate((ones_array, zeros_array))
     rng.shuffle(combined_array)
 
-    
     return combined_array
 
 

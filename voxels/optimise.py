@@ -2,7 +2,6 @@
 The cut tuning optimisation run
 """
 
-
 import sys
 from os.path import join, abspath
 from os import environ
@@ -91,11 +90,11 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
     """
     Compute the loss and return steps and hits relative to the baseline
     """
-    rel_hits_valid = [rh for rh in rel_hits if rh is not None] #Gets rid of hits that just say none, need to look into why some say none...
+    rel_hits_valid = [rh for rh in rel_hits if rh is not None] #Gets rid of hits that just say none (i.e detectors whos analyzeHits does not work...)
     
     loss = rel_steps**2 
 
-    for rvh in rel_hits_valid: #I think i understand the logic but I don't think that this is correct way to do it, 
+    for rvh in rel_hits_valid:
         if rvh < rel_hits_cutoff:
             loss += (penalty_below * (1 - rvh))**2
         else:
@@ -105,7 +104,7 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
 
 def run_on_batch(config):
     # in the reference directory we have the MCStepoLoggerOutput.root file
-    reference_dir = resolve_path(config['reference_dir']) #what does resolve path do
+    reference_dir = resolve_path(config['reference_dir']) 
     kine_file = join(reference_dir, "o2sim_Kine.root")
     steplogger_file = join(reference_dir, "MCStepLoggerOutput.root")
     # in the baseline directory we have the baseline steps and baseline hits
@@ -122,7 +121,7 @@ def run_on_batch(config):
 
     # extract the hits using O2 macro and pipe to file
     #extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
-    extract_hits_root = config['analyzeHitsFilePath']
+    extract_hits_root = config['analyzeHitsFilePath'] #Uses custom analyzeHits file becasue of faulty detector analysis (hence not using a path above)
     cmd_extract_hits = f"root -l -b -q {extract_hits_root}"
     _, hit_file = run_command(cmd_extract_hits, log_file="hits.dat")
 
@@ -131,63 +130,62 @@ def run_on_batch(config):
 
 def sample_voxels(trial, n_voxels, save_file_line_by_line):
     """
-    create a simple text file, each line with 0 or 1
+    create a simple single line .txt file with n_voxels of 0's or 1's
     """
     with open(save_file_line_by_line, "w") as f:
         for nv in range(n_voxels):
-            on_or_off = trial.suggest_categorical(f"voxel_{nv}", [0, 1]) #trial.suggest_catergorical <- what does this do?
-            f.write(str(on_or_off)) #writing as a string -> is there a better way?:) 
+            on_or_off = trial.suggest_categorical(f"voxel_{nv}", [0, 1]) 
+            f.write(str(on_or_off))\
 
-def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_roothashmap_saveloc):
+def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_root_hashmap_saveloc):
     """
-    extract list from save_file, construct hash map and save to save_root_hashmap_file
-
-    you would need to run a ROOT macro somewhat like
+    Creates hashmap from saved .txt file from sample_voxels
     """
     
-    CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_roothashmap_saveloc}\",{nx},{ny},{nz})'"
+    CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_root_hashmap_saveloc}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
 def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,layers):
     """
-    figure out the voxels that belong to layer i
+    Creates radial hashmap in the XY plane (i.e a cylinder where the cylindrical axis is the Z axis)
+    RadialMacroPath = path to the root macro which creates the hashmap
+    Nx,Ny,Nz = number of bins in the X,Y,Z directions respectively
+    RootHashMapSaveLoc = where to save the resulting hashmap
+    layers = from .yaml file (the radius is split into a number of layers)
     """
-    #Function made in dump hashmaps macro - its currently overloaded and needs testing but I don't think overloaded functions are supported
-    # in root macros, -> Just call the macro directly, skip making a text file to pass to it. 
-    # this will be sampled from the predefined search space. Here, None is simply a placeholder
-    
-    #Get the predefined search space from the yaml file/
+    #Gets the trial number
+    trial_number = trial.number
 
-    #######################################################################
-    trial_numb = trial.number
-    if ((len(layers)) > (trial_numb + 50)): #this is temporary! 
+    #Works from the outside in  
+    layer_i = layers[-trial_number] 
     
-        layer_i = layers[trial_numb + 50] 
-    
-    else:
-        layer_i = trial.suggest_categorical("i_layer_xy", layers)
-    #######################################################################
+    #layer_i = trial.suggest_categorical("i_layer_xy", layers) <- If you watned a random approach 
+
     print(f"The layer chosen is: {layer_i}")
     NumbLayers = len(layers)
 
+    #Ew, hardcoding:(  | Works out the corresponding radius to the layer chosen
     XYmax = 1000 
     minRadius = (XYmax/NumbLayers)*layer_i 
 
+    #Runs the macro 
     CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
     _, hashmap_file = run_command(CreateRadialHashMap, log_file="hits.dat")
     
 def relocate_file(filepath, destination):
-    '''Relocates (by copy & paste) files to a new location'''
+    '''
+    Relocates (by copy & paste) .txt files to a new location
+    filepath = original location
+    destination = final location
+    '''
     if filepath.endswith(".txt"):
         try:
             filename = os.path.basename(filepath)
-            #new_filepath = os.path.join(destination_folder, f"hashmap_{i}.txt")
             shutil.copy(filepath, destination)
-            #print(f"Copied {filepath} to {destination}")
         except Exception as e:
             print(f"Error copying {filepath}: {e}")
 
-@needs_cwd #what does this decorator do
+@needs_cwd #Ran in its on directory (cwd = current working directory)
 def objective(trial, config):
     """
     The central objective function for the optimisation
@@ -199,18 +197,19 @@ def objective(trial, config):
     #    e.g. write true/false (or 0, 1) to a file which will then be read by ROOT to make the actual HashMap and store it in a ROOT file
     # 2. which to switch on
 
-    # e.g.
+    #Gets whats needed from teh config file
     penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
     save_file_line_by_line = config["voxels_sampled_file"]
     save_root_hashmap_file = config["hashmap_file"]
+
+    #Creates the hashmap (first by writing 0,1s to a .txt file (sample_voxels) then reading this .txt file (create_hash_map))
     sample_voxels(trial, nx * ny * nz, save_file_line_by_line)
     create_hash_map(config["CreateHashMapFromTxtMacroFullPath"], save_file_line_by_line, nx, ny, nz, save_root_hashmap_file)
 
-    # rng = np.random.default_rng()
-    # batch_id = rng.integers(0, batches)
+    #Run it 
     rel_steps_avg, rel_hits_avg = run_on_batch(config)
 
     # annotate drawn space and metrics to trial so we can re-use it
@@ -221,10 +220,15 @@ def objective(trial, config):
     return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"], penalty_below)
     
 
-@needs_cwd
+@needs_cwd #Ran in its on directory (cwd = current working directory)
 def genetic(trial,config):
-    '''Genetic algorithm implementation for the optimisation'''
+    '''
+    Genetic algorithm implementation for the optimisation
+    The dependency 'next_gen' has already kept, bred, and, mutated the maps (or created the first generation)
+    This just needs to find the .txt files containing the maps and create the .root hashmap and run the simulation
+    '''
 
+    #Gets what's needed from the config file
     penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
@@ -236,18 +240,13 @@ def genetic(trial,config):
     trial_numb = trial.number
     print(trial_numb) 
 
-    #Insert a way of getting the hashmap for each trial! (call it hashmap.root when it's moved into the folder.)
+    '''Gets the hashmap for this trial from the folder of hashmaps that 'next_gen' dependency created
+    and sticks it in the cwd and then creates the .root voxelmap from it'''
     hash_map_txt_filepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),f"next_gen/HashMaps/hashmap_{trial_numb}.txt")
-    #print(hash_map_txt_filepath)
-    
     relocate_file(hash_map_txt_filepath,f"{os.getcwd()}/{move_txt_to}")
     create_hash_map(config["CreateHashMapFromTxtMacroFullPath"],move_txt_to,nx,ny,nz,save_root_hashmap_file)
 
-    
-    #choose the corresponding one to the trial number! 
-
-    # rng = np.random.default_rng()
-    # batch_id = rng.integers(0, batches)
+    #Run
     rel_steps_avg, rel_hits_avg = run_on_batch(config)
 
     # annotate drawn space and metrics to trial so we can re-use it
@@ -258,37 +257,30 @@ def genetic(trial,config):
     return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
 
 
-@needs_cwd #what does this decorator do
+@needs_cwd #Ran in its on directory (cwd = current working directory)
 def iterate_layers_xy(trial, config):
     """
-    This would be a function to simply iterate layer by layer <- I thought I understood what this meant but I do not anymore. Compute loss?
-    Is this slowly bringing in the walls around the center of the detector in a cylindrical sense (/ circular in xy place) to determine
-    the best outside cutoff for the detectors... 
+    Works from outside in with a radial hashmap (cylindrical with the cylindrical axis corresponding to the beam axis)
+    Everything outside the cylinder is a blackhole. 
     """
 
-    # construct voxel hash map
-    # 1. how many voxels in x, y, z
-    #    could use the same logic as here: https://gitlab.cern.ch/bvolkel/VecGeom/-/blob/master/VecGeom/base/FlatVoxelHashMap.h#L163 to only have one 1D list
-    #    e.g. write true/false (or 0, 1) to a file which will then be read by ROOT to make the actual HashMap and store it in a ROOT file
-    # 2. which to switch on
-
-    # e.g.
+    #Get neccessary information from the config file
     penalty_below = config["penalty_below"]
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
     save_root_hashmap_file = config["hashmap_file"]
 
-    #I hope this works in a similar way but this may be wrong:( 
+    #Gets the list of layers from the .yaml file
     layers = config["search_space"]["i_layer_xy"]
-    #print(f"The number of layers is: {layers}")
 
-    #Edit these so it just calls the cpp file directly and makes the circular layer, change so layer is actually just radius (or converetd into a fraction of the radius ig)
-    #     make_voxel_layer(trial, nx, ny, nz, save_file_line_by_line)
+    #Creates the radial hashmap. 
     CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,layers)
 
     # rng = np.random.default_rng()
     # batch_id = rng.integers(0, batches)
+
+    #Run
     rel_steps_avg, rel_hits_avg = run_on_batch(config)
 
     # annotate drawn space and metrics to trial so we can re-use it
