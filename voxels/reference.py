@@ -24,7 +24,7 @@ def reference(inspectors, config):
     preload = "DYLD_INSERT_LIBRARIES" if os_system() == "Darwin" else "LD_PRELOAD"
 
     cmd = f'MCSTEPLOG_NO_MAGFIELD=1 MCSTEPLOG_TTREE=1 {preload}={MCSTEPLOGGER_ROOT}/lib/libMCStepLoggerInterceptSteps{lib_extension} ' \
-          f'o2-sim-serial -n {events} -g {generator} -e {engine} '
+          f'o2-sim-serial -n {events} -g {generator} -e {engine} --skipModules ZDC'
     run_command(cmd, log_file=config["o2_sim_log"])
     return True
 

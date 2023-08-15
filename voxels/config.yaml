@@ -14,9 +14,9 @@ global_config: &global_config
   n_voxels_x: 200
   n_voxels_y: 200
   n_voxels_z: 600
-  CreateHashMapFromTxtMacroFullPath: /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateHashMapFromTxt.C
-  CreateRadialHashMapFullPath : /home/answain/alice/O2/TonysDevelopmentArea/macros/CreateRadialHashMapXY.C
-  analyzeHitsFilePath : /home/answain/alice/O2/TonysDevelopmentArea/macros/analyzeHits.C
+  CreateHashMapFromTxtMacroFullPath: /home/answain/alice/AliceO2MacroDev/HashMaps/CreateHashMapFromTxt.C
+  CreateRadialHashMapFullPath : /home/answain/alice/AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
+  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/Step&Hit_Analysis/analyzeHits.C
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
