@@ -19,12 +19,21 @@ def reference(inspectors, config):
     events = config["events"]
     generator = config["generator"]
     engine = config["engine"]
+    
 
     lib_extension = ".dylib" if os_system() == "Darwin" else ".so"
     preload = "DYLD_INSERT_LIBRARIES" if os_system() == "Darwin" else "LD_PRELOAD"
 
-    cmd = f'MCSTEPLOG_NO_MAGFIELD=1 MCSTEPLOG_TTREE=1 {preload}={MCSTEPLOGGER_ROOT}/lib/libMCStepLoggerInterceptSteps{lib_extension} ' \
+    #To skip or not to skip the ZDC detector is the question at hand! 
+    zdc_skip = config['zdc_skip']
+    if zdc_skip:
+        cmd = f'MCSTEPLOG_NO_MAGFIELD=1 MCSTEPLOG_TTREE=1 {preload}={MCSTEPLOGGER_ROOT}/lib/libMCStepLoggerInterceptSteps{lib_extension} ' \
           f'o2-sim-serial -n {events} -g {generator} -e {engine} --skipModules ZDC'
+    
+    else: 
+        cmd = f'MCSTEPLOG_NO_MAGFIELD=1 MCSTEPLOG_TTREE=1 {preload}={MCSTEPLOGGER_ROOT}/lib/libMCStepLoggerInterceptSteps{lib_extension} ' \
+          f'o2-sim-serial -n {events} -g {generator} -e {engine}'
+    
     run_command(cmd, log_file=config["o2_sim_log"])
     return True
 

@@ -155,30 +155,36 @@ def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_root_hashmap_sa
     CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_root_hashmap_saveloc}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
-def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,layers):
+def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,Rmax,layer_selection=None,Zextent = None):
     """
     Creates radial hashmap in the XY plane (i.e a cylinder where the cylindrical axis is the Z axis)
     RadialMacroPath = path to the root macro which creates the hashmap
     Nx,Ny,Nz = number of bins in the X,Y,Z directions respectively
     RootHashMapSaveLoc = where to save the resulting hashmap
-    layers = from .yaml file (the radius is split into a number of layers)
+    layer_selection = from .yaml file (the radius is split into a number of layers)
+    Zextent = [ZMin,Zmax]
     """
 
-    #Gets the trial number and works from the outside in
-    trial_number = trial.number + 1 #(+1 otherwise it starts with layer 0)
-    layer_i = layers[-trial_number] 
-    
-    #layer_i = trial.suggest_categorical("i_layer_xy", layers) <- If you watned a random approach 
+    if layer_selection is not None:
+        #Gets the trial number and works from the outside in
+        trial_number = trial.number + 1 #(+1 otherwise it starts with layer 0)
+        layer_i = layer_selection[-trial_number] 
+        
+        print(f"The layer chosen is: {layer_i}")
+        NumbLayers = len(layer_selection)
+        
+        minRadius = (Rmax/NumbLayers)*layer_i 
 
-    print(f"The layer chosen is: {layer_i}")
-    NumbLayers = len(layers)
+        #Macro command
+        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
 
-    #Ew, hardcoding:(  | Works out the corresponding radius to the layer chosen
-    XYmax = 1000 
-    minRadius = (XYmax/NumbLayers)*layer_i 
+    else: 
+        minZchosen = trial.suggest_float("minZ",Zextent[0],Zextent[1])
+        maxZchosen = trial.suggest_float("maxZ",minZchosen,Zextent[1])
+        Rchosen = trial.suggest_float("MaxR", 0,Rmax)
+        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{Rchosen},{minZchosen},{maxZchosen})'"
 
-    #Runs the macro 
-    CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
+    #Runs the macro
     _, hashmap_file = run_command(CreateRadialHashMap, log_file="hits.dat")
     
 def relocate_file(filepath, destination):
@@ -279,12 +285,49 @@ def iterate_layers_xy(trial, config):
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
     save_root_hashmap_file = config["hashmap_file"]
+    Rmax = config["Rmax"]
 
     #Gets the list of layers from the .yaml file
     layers = config["search_space"]["i_layer_xy"]
 
     #Creates the radial hashmap. 
-    CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,layers)
+    CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,Rmax,layer_selection=layers)
+
+    # rng = np.random.default_rng()
+    # batch_id = rng.integers(0, batches)
+
+    #Run
+    rel_steps_avg, rel_hits_avg = run_on_batch(config)
+
+    # annotate drawn space and metrics to trial so we can re-use it
+    annotate_trial(trial, "rel_steps", rel_steps_avg)
+    annotate_trial(trial, "rel_hits", rel_hits_avg)
+    # annotate with other data if you want
+
+    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
+
+@needs_cwd #Ran in its on directory (cwd = current working directory)
+def cylinder_xy(trial, config):
+    """
+    Works from outside in with a radial hashmap (cylindrical with the cylindrical axis corresponding to the beam axis)
+    Everything outside the cylinder is a blackhole. 
+    """
+
+    #Get neccessary information from the config file
+    penalty_below = config["penalty_below"]
+    nx = config["n_voxels_x"]
+    ny = config["n_voxels_y"]
+    nz = config["n_voxels_z"]
+    save_root_hashmap_file = config["hashmap_file"]
+
+    #Min/Max parameters for the cylinder
+    Rmax = config["Rmax"]
+    Zmax = config["Zmax"]
+    Zmin = config["Zmin"]
+    
+
+    #Creates the radial hashmap. 
+    CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,Rmax,Zextent=[Zmin,Zmax])
 
     # rng = np.random.default_rng()
     # batch_id = rng.integers(0, batches)
