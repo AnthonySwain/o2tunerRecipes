@@ -3,12 +3,12 @@ global_config: &global_config
   generator: pythia8pp
   events: 10
 
-  o2_sim_log: sim.log                                         # the file name to be used to pipe the output of each simulation into
-  penalty_below : 50                                         # Penalty applied if below desired minimum drop of relative ratio of hits
-  hits_log_file: &hits_file hits.dat                          # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
-  reference_dir: &reference_dir reference                     # the reference directory
-  baseline_dir: &baseline_dir baseline                        # the baseline directory
-  optimisation_dir: &opt_name optimisation                    # the optimisation directory and name
+  o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
+  penalty_below : 50                        # Penalty applied if below desired minimum drop of relative ratio of hits
+  hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
+  reference_dir: &reference_dir reference   # the reference directory
+  baseline_dir: &baseline_dir baseline      # the baseline directory
+  optimisation_dir: &opt_name optimisation  # the optimisation directory and name
   voxels_sampled_file: voxels.txt
   hashmap_file: hashmap.root
   n_voxels_x: 200
@@ -20,7 +20,7 @@ global_config: &global_config
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
-
+  zdc_skip : False #whether or not to skip the ZDC detector module
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -36,7 +36,7 @@ global_config: &global_config
     - MCH
     - MID
     - CPV
-    - ZDC #Removed from most optimisations for speed-up 
+    - ZDC # May be removed from most optimisations for speed-up (see zdc_skip variable above) 
     - TPC
 
 stages_user:
@@ -95,6 +95,7 @@ stages_optimisation:
     deps:
       - baseline_hits
 
+  #For finding the optimal cylinder to cut away the world volume outside the magnet 
   iterate_layers_xy:
     file: optimise.py
     objective: iterate_layers_xy
@@ -113,8 +114,31 @@ stages_optimisation:
       <<: *global_config
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
+      
     deps:
       - baseline_hits
+
+
+  #For finding the optimal cylinders for ZDC/Muon detectors 
+  cylinder_xy:
+    file: optimise.py
+    objective: cylinder_xy
+    jobs: 1    # desired number of jobs
+    trials: 75  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+      #storage: sqlite:///opt.db
+    config:
+      << : *global_config
+      search_space: *search_space
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
+      Zmin : 0 # 
+      Zmax : 2999 #
+    deps:
+      - baseline_hits
+
 
   genetic:
     file: optimise.py
