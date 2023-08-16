@@ -16,7 +16,7 @@ global_config: &global_config
   n_voxels_z: 600
   CreateHashMapFromTxtMacroFullPath: /home/answain/alice/AliceO2MacroDev/HashMaps/CreateHashMapFromTxt.C
   CreateRadialHashMapFullPath : /home/answain/alice/AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
-  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/Step&Hit_Analysis/analyzeHits.C
+  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
@@ -36,7 +36,7 @@ global_config: &global_config
     - MCH
     - MID
     - CPV
-    - ZDC
+    - ZDC #Removed from most optimisations for speed-up 
     - TPC
 
 stages_user:
@@ -99,7 +99,7 @@ stages_optimisation:
     file: optimise.py
     objective: iterate_layers_xy
     jobs: 1    # desired number of jobs
-    trials: 25  # desired number of trials
+    trials: 75  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: iterate_layers_xy
       #storage: sqlite:///opt.db

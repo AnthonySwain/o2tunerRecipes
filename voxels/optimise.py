@@ -13,6 +13,7 @@ from o2tuner.optimise import optimise
 from o2tuner.io import parse_json, dump_json, dump_yaml, parse_yaml, exists_file
 from o2tuner.optimise import needs_cwd
 from o2tuner.config import resolve_path
+import numpy as np
 
 # Get environment variables we need to execute some cmds
 O2_ROOT = environ.get("O2_ROOT") #Just the path to the O2 og enviroment
@@ -132,10 +133,19 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line):
     """
     create a simple single line .txt file with n_voxels of 0's or 1's
     """
+    binary_list = np.array([])
+    for nv in range(n_voxels):
+        np.append(binary_list,trial.suggest_categorical(f"voxel_{nv}",[0,1]))
+    
+    with open(save_file_line_by_line,"w") as f:
+         np.savetxt(save_file_line_by_line, binary_list, fmt='%d', delimiter='', newline='')
+        
+    '''
     with open(save_file_line_by_line, "w") as f:
         for nv in range(n_voxels):
             on_or_off = trial.suggest_categorical(f"voxel_{nv}", [0, 1]) 
-            f.write(str(on_or_off))\
+            f.write(str(on_or_off))
+    '''
 
 def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_root_hashmap_saveloc):
     """
@@ -153,10 +163,9 @@ def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,l
     RootHashMapSaveLoc = where to save the resulting hashmap
     layers = from .yaml file (the radius is split into a number of layers)
     """
-    #Gets the trial number
-    trial_number = trial.number
 
-    #Works from the outside in  
+    #Gets the trial number and works from the outside in
+    trial_number = trial.number + 1 #(+1 otherwise it starts with layer 0)
     layer_i = layers[-trial_number] 
     
     #layer_i = trial.suggest_categorical("i_layer_xy", layers) <- If you watned a random approach 
