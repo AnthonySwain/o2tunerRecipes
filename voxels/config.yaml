@@ -4,7 +4,7 @@ global_config: &global_config
   events: 10
 
   o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
-  penalty_below : 50                        # Penalty applied if below desired minimum drop of relative ratio of hits
+  penalty_below : 1000                        # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
   reference_dir: &reference_dir reference   # the reference directory
   baseline_dir: &baseline_dir baseline      # the baseline directory
@@ -20,7 +20,7 @@ global_config: &global_config
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
-  zdc_skip : False #whether or not to skip the ZDC detector module
+  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -134,7 +134,7 @@ stages_optimisation:
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
-      Zmin : 0 # 
+      Zmin : 0 # the zmin zmax basicailly tell the optimiser where to look to optimise
       Zmax : 2999 #
     deps:
       - baseline_hits

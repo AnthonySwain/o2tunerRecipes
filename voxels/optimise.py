@@ -57,6 +57,9 @@ def extract_avg_steps(path):
     if not steps_orig:
         print("ERROR: Could not extract steps")
         sys.exit(1)
+
+
+    #I am not sure why this is divided by length of the list but sure
     return sum(steps_orig) / len(steps_orig), sum(steps_skipped) / len(steps_skipped)
 
 def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_path, o2_detectors,loss_data_save):
@@ -71,11 +74,16 @@ def compute_metrics(hits_path, hits_baseline_path, steps_path, steps_baseline_pa
     steps_baseline = extract_avg_steps(steps_baseline_path)
 
     # baseline steps
-    steps_baseline = steps_baseline[0]
-    steps_remaining = steps[1]
-    rel_steps = 1 - (steps_remaining / steps_baseline)
-
-
+    # '''
+    # INTRICATE BEHAVIOUR THATS UNEXPECTED
+    # steps_baseline[0] will always be the same as steps[0] as this is the same number as the reference simulation. BUT.
+    # steps_baseline also has skipped steps - the optimisation will have the same replay as this, not the reference, therefore we need to comapre the number of steps in the baseline
+    # versues the simulation (i.e take into account skipped steps in the baseline to give the total number of steps in the baseline)
+    # '''
+    steps_base = steps_baseline[0] - steps_baseline[1]
+    steps_optimise = steps[0]-steps[1]
+    rel_steps = steps_optimise/steps_base
+    
     # Write data to the file so it can be easily found post-simulations. 
     #loss_calc_data_save_filepath = ""
     with open (loss_data_save, "a") as file:
@@ -101,7 +109,8 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
         else:
             loss += (1 - rvh)**2
 
-    return loss / (len(rel_hits_valid) + 1)
+    #The normalisation over rel_hits_vald doesn't really achieve anything here does it now... 
+    return loss 
 
 def run_on_batch(config):
     # in the reference directory we have the MCStepoLoggerOutput.root file
@@ -116,8 +125,17 @@ def run_on_batch(config):
     loss_data_save_file = config['Loss_data_save_file']
 
     # replay the simulation
-    cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-          f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}"'
+    #Is ZDC skip required here? 
+    zdc_skip = config['zdc_skip']
+    if zdc_skip:
+        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+            f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}" --skipModules ZDC'
+    
+    else:
+        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+            f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}"'
+        
+
     _, sim_log = run_command(cmd, log_file="sim.log")
 
     # extract the hits using O2 macro and pipe to file
@@ -137,8 +155,8 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line):
     for nv in range(n_voxels):
         np.append(binary_list,trial.suggest_categorical(f"voxel_{nv}",[0,1]))
     
-    with open(save_file_line_by_line,"w") as f:
-         np.savetxt(save_file_line_by_line, binary_list, fmt='%d', delimiter='', newline='')
+    
+    np.savetxt(save_file_line_by_line, binary_list, fmt='%d', delimiter='', newline='')
         
     '''
     with open(save_file_line_by_line, "w") as f:

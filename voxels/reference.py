@@ -42,8 +42,17 @@ def baseline(inspectors, config):
     reference_dir = resolve_path(config["reference_dir"])
     kine_file = join(reference_dir, "o2sim_Kine.root")
     steplogger_file = join(reference_dir, "MCStepLoggerOutput.root")
+    
 
-    cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay --configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file}"'
+
+    #Is ZDC skip required here?
+    zdc_skip = config['zdc_skip']
+    if zdc_skip:
+        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay --configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file}" --skipModules ZDC'
+    
+    else:
+        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay --configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file}"'
+    
     run_command(cmd, log_file=config["o2_sim_log"])
 
     #extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
