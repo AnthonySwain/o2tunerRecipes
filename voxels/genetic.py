@@ -11,10 +11,64 @@ import numpy as np
 import shutil
 import re
 import math
+import imp
+
+from o2tuner.system import run_command
+from o2tuner.utils import annotate_trial
+from o2tuner.optimise import optimise
+from o2tuner.io import parse_json, dump_json, dump_yaml, parse_yaml, exists_file
+from o2tuner.optimise import needs_cwd
+from o2tuner.config import resolve_path
+
+
+# Get environment variables we need to execute some cmds
+O2_ROOT = environ.get("O2_ROOT") #Just the path to the O2 og enviroment
+MCSTEPLOGGER_ROOT = environ.get("MCSTEPLOGGER_ROOT")
 
 
 #from o2tuner.system import run_command
 #from o2tuner.config import resolve_path
+
+@needs_cwd #Ran in its on directory (cwd = current working directory)
+def genetic(trial,config):
+    '''
+    Genetic algorithm implementation for the optimisation
+    The dependency 'next_gen' has already kept, bred, and, mutated the maps (or created the first generation)
+    This just needs to find the .txt files containing the maps and create the .root hashmap and run the simulation
+    '''
+
+    #Imports functions
+    absolute_filepath = "/home/answain/alice/o2tunerRecipes/voxels/optimise.py"
+    optimise = imp.load_source("optimise", absolute_filepath)
+
+    #Gets what's needed from the config file
+    penalty_below = config["penalty_below"]
+    nx = config["n_voxels_x"]
+    ny = config["n_voxels_y"]
+    nz = config["n_voxels_z"]
+    save_root_hashmap_file = config["hashmap_file"]
+    move_txt_to = config["voxels_sampled_file"]
+
+    #Get trial numb
+    trial_numb = trial.number
+    print(trial_numb) 
+
+    '''Gets the hashmap for this trial from the folder of hashmaps that 'next_gen' dependency created
+    and sticks it in the cwd and then creates the .root voxelmap from it'''
+    hash_map_txt_filepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),f"next_gen/HashMaps/hashmap_{trial_numb}.txt")
+    optimise.relocate_file(hash_map_txt_filepath,f"{os.getcwd()}/{move_txt_to}")
+    optimise.create_hash_map(config["CreateHashMapFromTxtMacroFullPath"],move_txt_to,nx,ny,nz,save_root_hashmap_file)
+
+    #Run
+    rel_steps_avg, rel_hits_avg = optimise.run_on_batch(config)
+
+    # annotate drawn space and metrics to trial so we can re-use it
+    optimise.annotate_trial(trial, "rel_steps", rel_steps_avg)
+    optimise.annotate_trial(trial, "rel_hits", rel_hits_avg)
+    # annotate with other data if you want
+
+    return optimise.compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
+
 
 def saveastxt(filename, input_list):
     '''Saves a mapping to a .txt file'''

@@ -1,5 +1,5 @@
 """
-The cut tuning optimisation run
+Contains all the functions used in optimisation runs (see the other py files for the set-ups)
 """
 
 import sys
@@ -151,10 +151,14 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line):
     """
     create a simple single line .txt file with n_voxels of 0's or 1's
     """
+
+    #Okay - perhaps every 1000 or so parameters, they should be saved to the txt file, reset the binary list and continue
+    #Also not using a goddamn .txt file 
+
     binary_list = np.array([])
     for nv in range(n_voxels):
         np.append(binary_list,trial.suggest_categorical(f"voxel_{nv}",[0,1]))
-    
+        
     
     np.savetxt(save_file_line_by_line, binary_list, fmt='%d', delimiter='', newline='')
         
@@ -173,34 +177,25 @@ def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_root_hashmap_sa
     CreateHashMap = f"root -l -b -q '{macro_path}(\"{rel_txtfilepath}\",\"{rel_root_hashmap_saveloc}\",{nx},{ny},{nz})'"
     _, hashmap_file = run_command(CreateHashMap, log_file="hits.dat")
     
-def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,Rmax,layer_selection=None,Zextent = None):
+def CreateRadialHashMap(trial, RadialMacroPath, Nx, Ny, Nz, RootHashMapSaveLoc,innerRadius,Zextent = None):
     """
     Creates radial hashmap in the XY plane (i.e a cylinder where the cylindrical axis is the Z axis)
     RadialMacroPath = path to the root macro which creates the hashmap
     Nx,Ny,Nz = number of bins in the X,Y,Z directions respectively
     RootHashMapSaveLoc = where to save the resulting hashmap
-    layer_selection = from .yaml file (the radius is split into a number of layers)
-    Zextent = [ZMin,Zmax]
+    Inner radius - inner radius of the cylinder
+    Zextent = [ZMin,Zmax] (optional)
     """
 
-    if layer_selection is not None:
-        #Gets the trial number and works from the outside in
-        trial_number = trial.number + 1 #(+1 otherwise it starts with layer 0)
-        layer_i = layer_selection[-trial_number] 
-        
-        print(f"The layer chosen is: {layer_i}")
-        NumbLayers = len(layer_selection)
-        
-        minRadius = (Rmax/NumbLayers)*layer_i 
-
+    if Zextent == None:
         #Macro command
-        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{minRadius})'"
+        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{innerRadius})'"
 
+    #I.e using the cylinder_xy algorithm (fitting Z extent too)
     else: 
-        minZchosen = trial.suggest_float("minZ",Zextent[0],Zextent[1])
-        maxZchosen = trial.suggest_float("maxZ",minZchosen,Zextent[1])
-        Rchosen = trial.suggest_float("MaxR", 0,Rmax)
-        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{Rchosen},{minZchosen},{maxZchosen})'"
+        minZchosen = Zextent[0]
+        maxZchosen = Zextent[1]
+        CreateRadialHashMap = f"root -l -b -q '{RadialMacroPath}(\"{RootHashMapSaveLoc}\",{Nx},{Ny},{Nz},{innerRadius},{minZchosen},{maxZchosen})'"
 
     #Runs the macro
     _, hashmap_file = run_command(CreateRadialHashMap, log_file="hits.dat")
@@ -217,6 +212,37 @@ def relocate_file(filepath, destination):
             shutil.copy(filepath, destination)
         except Exception as e:
             print(f"Error copying {filepath}: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @needs_cwd #Ran in its on directory (cwd = current working directory)
 def objective(trial, config):
@@ -251,43 +277,20 @@ def objective(trial, config):
     # annotate with other data if you want
 
     return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"], penalty_below)
-    
 
-@needs_cwd #Ran in its on directory (cwd = current working directory)
-def genetic(trial,config):
-    '''
-    Genetic algorithm implementation for the optimisation
-    The dependency 'next_gen' has already kept, bred, and, mutated the maps (or created the first generation)
-    This just needs to find the .txt files containing the maps and create the .root hashmap and run the simulation
-    '''
 
-    #Gets what's needed from the config file
-    penalty_below = config["penalty_below"]
-    nx = config["n_voxels_x"]
-    ny = config["n_voxels_y"]
-    nz = config["n_voxels_z"]
-    save_root_hashmap_file = config["hashmap_file"]
-    move_txt_to = config["voxels_sampled_file"]
 
-    #Get trial numb
-    trial_numb = trial.number
-    print(trial_numb) 
 
-    '''Gets the hashmap for this trial from the folder of hashmaps that 'next_gen' dependency created
-    and sticks it in the cwd and then creates the .root voxelmap from it'''
-    hash_map_txt_filepath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),f"next_gen/HashMaps/hashmap_{trial_numb}.txt")
-    relocate_file(hash_map_txt_filepath,f"{os.getcwd()}/{move_txt_to}")
-    create_hash_map(config["CreateHashMapFromTxtMacroFullPath"],move_txt_to,nx,ny,nz,save_root_hashmap_file)
 
-    #Run
-    rel_steps_avg, rel_hits_avg = run_on_batch(config)
 
-    # annotate drawn space and metrics to trial so we can re-use it
-    annotate_trial(trial, "rel_steps", rel_steps_avg)
-    annotate_trial(trial, "rel_hits", rel_hits_avg)
-    # annotate with other data if you want
 
-    return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
+
+
+
+
+
+
+
 
 
 @needs_cwd #Ran in its on directory (cwd = current working directory)
@@ -324,6 +327,25 @@ def iterate_layers_xy(trial, config):
 
     return compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @needs_cwd #Ran in its on directory (cwd = current working directory)
 def cylinder_xy(trial, config):
     """
@@ -342,7 +364,6 @@ def cylinder_xy(trial, config):
     Rmax = config["Rmax"]
     Zmax = config["Zmax"]
     Zmin = config["Zmin"]
-    
 
     #Creates the radial hashmap. 
     CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,Rmax,Zextent=[Zmin,Zmax])

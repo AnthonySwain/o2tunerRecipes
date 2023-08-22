@@ -20,7 +20,7 @@ global_config: &global_config
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
-  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -82,7 +82,7 @@ stages_user:
   
 stages_optimisation:
   optimisation:
-    file: optimise.py
+    file: inner_barrel.py
     objective: objective
     jobs: 2     # desired number of jobs
     trials: 10  # desired number of trials
@@ -97,7 +97,7 @@ stages_optimisation:
 
   #For finding the optimal cylinder to cut away the world volume outside the magnet 
   iterate_layers_xy:
-    file: optimise.py
+    file: layer_search.py
     objective: iterate_layers_xy
     jobs: 1    # desired number of jobs
     trials: 75  # desired number of trials
@@ -122,10 +122,10 @@ stages_optimisation:
 
   #For finding the optimal cylinders for ZDC/Muon detectors 
   cylinder_xy:
-    file: optimise.py
+    file: cylinder_xy.py
     objective: cylinder_xy
-    jobs: 1    # desired number of jobs
-    trials: 75  # desired number of trials
+    jobs: 3    # desired number of jobs
+    trials: 100  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
       #storage: sqlite:///opt.db
@@ -134,14 +134,35 @@ stages_optimisation:
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
-      Zmin : 0 # the zmin zmax basicailly tell the optimiser where to look to optimise
-      Zmax : 2999 #
+      Zmin : -3000 # the zmin zmax basicailly tell the optimiser where to look to optimise
+      Zmax : -1200 #
+    deps:
+      - baseline_hits
+
+  #Takes a set of cylinders from a CSV file and tries to optimise further
+  fine_tuning_cylinders:
+    file: fine_tuning.py
+    objective: fine_tuning_cylinders
+    jobs: 3    # desired number of jobs
+    trials: 100  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+      #storage: sqlite:///opt.db
+    config:
+      << : *global_config
+      search_space: *search_space
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      csv_filepath : #filepath to the csv folder with data about the cylinders
+      ZaxisLeeway : 100
+      RadialLeeWay: 100
+
+      AddMapsMacroFilePath : /home/answain/alice/AliceO2MacroDev/HashMaps/AddHashMaps.C 
     deps:
       - baseline_hits
 
 
   genetic:
-    file: optimise.py
+    file: genetic.py
     objective: genetic
     jobs: 1
     trials: 100
@@ -165,10 +186,10 @@ stages_optimisation:
           #swapping_prob:
 
 
-  #evaluate:
-  #  python:
-  #    file: evaluate.py
-  #    entrypoint: evaluate
-  #  optimisations:
-  #    - optimisation
-  #  config: *global_config
+# evaluate:
+#      python:
+#    file: evaluate.py
+#    entrypoint: evaluate
+#    optimisations:
+#      - optimisation
+#    config: *global_config
