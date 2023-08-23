@@ -1,8 +1,7 @@
 global_config: &global_config
   engine: TGeant4
   generator: pythia8pp
-  events: 10
-
+  events: 20
   o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
   penalty_below : 100                        # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
@@ -20,7 +19,7 @@ global_config: &global_config
   Loss_data_save_file : LossCalcData.txt
 
   saveNextGen : HashMaps
-  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
 
   O2DETECTORS: # all detectors we have
     - ITS

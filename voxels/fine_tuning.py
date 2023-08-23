@@ -137,7 +137,7 @@ def fine_tuning_cylinders(trial,config):
             Zmax = row['Zmax'] #get from dataframe
             R_data = row['R'] #get from dataframe
 
-            Zmin_chosen = Zmin_values_negativeZ[cylinder_counter_negativeZ-1]
+            Zmin_chosen = Zmin_values_negativeZ[cylinder_counter_negativeZ -1]
             Zmax_chosen = trial.suggest_float(f"minZ_negative{cylinder_counter_negativeZ}",Zmax*(1+leewayZ_axis_percent/100), Zmax*(1-leewayZ_axis_percent/100))
             Rchosen = trial.suggest_float(f"MaxR_negative{cylinder_counter_negativeZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
 
