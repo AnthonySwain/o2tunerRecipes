@@ -54,7 +54,7 @@ def fine_tuning_cylinders(trial,config):
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
     csv_filepath = config['csv_filepath']
-    data = pd.read(csv_filepath)
+    data = pd.read_csv(csv_filepath)
 
     categories = ['positiveZ','negativeZ','mainBarrel']
 
@@ -84,7 +84,7 @@ def fine_tuning_cylinders(trial,config):
     file_paths_positiveZ = []
     cylinder_counter_positiveZ = 0 # first cylinder = 0
 
-    for index, row in positiveZ_data.df_iterrrows():
+    for index, row in positiveZ_data.iterrows():
         if cylinder_counter_positiveZ == 0: 
             #if no previous cylinder
             #get the Z max of the cylinder
@@ -124,7 +124,7 @@ def fine_tuning_cylinders(trial,config):
     cylinder_counter_negativeZ = 0
 
     #check this to make sure all the positive and negatives are the right way round.
-    for index, row in negativeZ_data.df_iterrows():
+    for index, row in negativeZ_data.iterrows():
         
         if cylinder_counter_negativeZ == 0: 
             #if no previous cylinder
