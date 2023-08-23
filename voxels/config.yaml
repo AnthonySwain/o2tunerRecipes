@@ -4,7 +4,7 @@ global_config: &global_config
   events: 10
 
   o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
-  penalty_below : 1000                        # Penalty applied if below desired minimum drop of relative ratio of hits
+  penalty_below : 100                        # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
   reference_dir: &reference_dir reference   # the reference directory
   baseline_dir: &baseline_dir baseline      # the baseline directory
@@ -124,7 +124,7 @@ stages_optimisation:
   cylinder_xy:
     file: cylinder_xy.py
     objective: cylinder_xy
-    jobs: 3    # desired number of jobs
+    jobs: 1    # desired number of jobs
     trials: 100  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
@@ -133,9 +133,9 @@ stages_optimisation:
       << : *global_config
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
+      Rmax : 200 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
       Zmin : -3000 # the zmin zmax basicailly tell the optimiser where to look to optimise
-      Zmax : -1200 #
+      Zmax : -1800 #
     deps:
       - baseline_hits
 
@@ -153,8 +153,8 @@ stages_optimisation:
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       csv_filepath : #filepath to the csv folder with data about the cylinders
-      ZaxisLeeway : 100
-      RadialLeeWay: 100
+      ZaxisLeeway_percent: 10
+      RadialLeeWay_percent: 10
 
       AddMapsMacroFilePath : /home/answain/alice/AliceO2MacroDev/HashMaps/AddHashMaps.C 
     deps:

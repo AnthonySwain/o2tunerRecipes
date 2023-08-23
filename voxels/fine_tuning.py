@@ -75,8 +75,8 @@ def fine_tuning_cylinders(trial,config):
     # and some code for Zmin low -> high for negativeZ_data
 
     
-    leewayZ_axis = config['ZaxisLeeway'] #add something in config for this
-    leewayRadial = config['RadialLeeWay'] #add something in config for this 
+    leewayZ_axis_percent = config['ZaxisLeeway_percent'] #add something in config for this
+    leewayRadial_percent = config['RadialLeeWay_percent'] #add something in config for this 
 
     Zmin_values_positiveZ = []
     Zmax_values_positiveZ = []
@@ -92,8 +92,8 @@ def fine_tuning_cylinders(trial,config):
             Zmin = row['Zmin'] #get from dataframe
             R_data = row ['R'] #get from data frame
 
-            Zmin_chosen = trial.suggest_float(f"minZ{cylinder_counter_positiveZ}",Zmin - leewayZ_axis, Zmin+leewayZ_axis)
-            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_positiveZ}", R_data - leewayRadial, R_data + leewayRadial)
+            Zmin_chosen = trial.suggest_float(f"minZ{cylinder_counter_positiveZ}",Zmin*(1-leewayZ_axis_percent/100), Zmin*(1+leewayZ_axis_percent/100))
+            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_positiveZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
            
         
         else:
@@ -101,8 +101,8 @@ def fine_tuning_cylinders(trial,config):
             R_data = row['R'] #get from dataframe
 
             Zmax_chosen = Zmin_values_positiveZ[cylinder_counter_positiveZ]
-            Zmin_chosen = trial.suggest_float(f"minZ{cylinder_counter_positiveZ}",Zmin-leewayZ_axis,Zmin+leewayZ_axis)
-            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_positiveZ}", R_data - leewayRadial, R_data + leewayRadial)
+            Zmin_chosen = trial.suggest_float(f"minZ{cylinder_counter_positiveZ}",Zmin*(1-leewayZ_axis_percent/100), Zmin*(1+leewayZ_axis_percent/100))
+            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_positiveZ}"  ,R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
 
 
         Zmax_values_positiveZ.append(Zmax_chosen)
@@ -133,8 +133,8 @@ def fine_tuning_cylinders(trial,config):
             Zmax = row['Zmax'] #get from dataframe
             R_data = row['R'] #get from data frame
 
-            Zmax_chosen = trial.suggest_float(f"minZ{cylinder_counter_negativeZ}",Zmax - leewayZ_axis, Zmax+leewayZ_axis)
-            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_negativeZ}", R_data - leewayRadial, R_data + leewayRadial)
+            Zmax_chosen = trial.suggest_float(f"minZ{cylinder_counter_negativeZ}",Zmax*(1-leewayZ_axis_percent/100), Zmax*(1+leewayZ_axis_percent/100))
+            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_negativeZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
            
         
         else:
@@ -142,8 +142,8 @@ def fine_tuning_cylinders(trial,config):
             R_data = row['R'] #get from dataframe
 
             Zmin_chosen = Zmin_values_negativeZ[cylinder_counter_negativeZ]
-            Zmax_chosen = trial.suggest_float(f"minZ{cylinder_counter_negativeZ}",Zmax-leewayZ_axis,Zmax+leewayZ_axis)
-            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_negativeZ}", R_data - leewayRadial, R_data + leewayRadial)
+            Zmax_chosen = trial.suggest_float(f"minZ{cylinder_counter_negativeZ}",Zmax*(1-leewayZ_axis_percent/100), Zmax*(1+leewayZ_axis_percent/100))
+            Rchosen = trial.suggest_float(f"MaxR{cylinder_counter_negativeZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
 
 
         Zmax_values_negativeZ.append(Zmax_chosen)
@@ -162,13 +162,13 @@ def fine_tuning_cylinders(trial,config):
   
 
     Rmain_barrel = main_barrel_data.iloc[0]['R']
-    R_mainbarrel_chosen = trial.suggest_float("RmainBarrel", Rmain_barrel - leewayRadial, Rmain_barrel + leewayRadial) 
-    main_barrel_filepath = "MainBarrelMap.root"
+    R_mainbarrel_chosen = trial.suggest_float("RmainBarrel", Rmain_barrel*(1- leewayRadial_percent/100), Rmain_barrel*(1+ leewayRadial_percent/100)) 
+    main_barrel_filepath = ["MainBarrelMap.root"]
 
     Z_barrel_max = Zmin_values_positiveZ[-1]
     Z_barrel_min = Zmax_values_negativeZ[-1]
 
-    optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, main_barrel_filepath,R_mainbarrel_chosen,Zextent=[Z_barrel_min,Z_barrel_max])
+    optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, main_barrel_filepath[0],R_mainbarrel_chosen,Zextent=[Z_barrel_min,Z_barrel_max])
 
     #now we have everything, add all the hashmaps
     #maybe put this as a function or something
@@ -190,7 +190,7 @@ def fine_tuning_cylinders(trial,config):
 def add_all_maps(AddMapsMacroPath,map_filepaths,final_save_loc,Nx,Ny,Nz):
     #goes through all of the hashmaps and adds them together. 
 
-    for i in (len(map_filepaths)-2):
+    for i in range(len(map_filepaths)-2):
        # add the first 2 maps, then add the third onto those, then 4th ect...
         if i == 0:
             MapPath1 = map_filepaths[i]
