@@ -133,9 +133,9 @@ stages_optimisation:
       << : *global_config
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      Rmax : 200 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
+      Rmax : 50 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
       Zmin : -3000 # the zmin zmax basicailly tell the optimiser where to look to optimise
-      Zmax : -1800 #
+      Zmax : -2000 #
     deps:
       - baseline_hits
 
@@ -143,7 +143,7 @@ stages_optimisation:
   fine_tuning_cylinders:
     file: fine_tuning.py
     objective: fine_tuning_cylinders
-    jobs: 3    # desired number of jobs
+    jobs: 1    # desired number of jobs
     trials: 100  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
@@ -152,9 +152,9 @@ stages_optimisation:
       << : *global_config
       search_space: *search_space
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      csv_filepath : #filepath to the csv folder with data about the cylinders
-      ZaxisLeeway_percent: 10
-      RadialLeeWay_percent: 10
+      csv_filepath : /home/answain/alice/CircularCrossSections/FineTuningTest/cylinder_data.csv #filepath to the csv folder with data about the cylinders
+      ZaxisLeeway_percent: 0.00001
+      RadialLeeWay_percent: 0.00001
 
       AddMapsMacroFilePath : /home/answain/alice/AliceO2MacroDev/HashMaps/AddHashMaps.C 
     deps:
