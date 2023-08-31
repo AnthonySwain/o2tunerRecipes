@@ -1,7 +1,7 @@
 global_config: &global_config
   engine: TGeant4
   generator: pythia8pp
-  events: 20
+  events: 5
   o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
   penalty_below : 10                      # Penalty applied if below desired minimum drop of relative ratio of hits
   hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
@@ -22,12 +22,12 @@ global_config: &global_config
 
   saveNextGen : HashMaps
   
-  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
   NoVoxelMap : True #if not using voxel maps.
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by the code injection
   
-  csv_filepath_base_data : /home/answain/alice/CircularCrossSections/HyperFine5/cylinder_data.csv #filepath to the csv folder with data about the cylinders
-  csv_filepath_hyper_fine :  /home/answain/alice/CircularCrossSections/HyperFine5/cylinder_data_fine.csv
+  csv_filepath_base_data : /home/answain/alice/CircularCrossSections/AddZDC/cylinder_data.csv #filepath to the csv folder with data about the cylinders
+  csv_filepath_hyper_fine :  /home/answain/alice/CircularCrossSections/AddZDC/cylinder_data_fine.csv
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -94,6 +94,13 @@ stages_user:
       <<: *global_config
       number_of_cylinders : 100
    
+  add_zdc_cylinders:
+    python:
+      file: reference.py
+      entrypoint: add_zdc_cylinders
+    config :
+      <<: *global_config
+      number_of_cylinders : 100
 
     
   
@@ -183,10 +190,25 @@ stages_optimisation:
       << : *global_config
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       RadialLeeWay_percent: 20
+
+  hyper_fine_ZDC:
+    file: AddZDC.py
+    objective: fine_tuning_cylinders_ZDC_only
+    jobs: 2     # desired number of jobs
+    trials: 200  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+      #storage: sqlite:///opt.db
+    config:
+      << : *global_config
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      RadialLeeWay_percent: 20
+      Zextent : [-13000,13000]
+      R_added : 60
       
     deps:
       - baseline_hits
-      - hyper_fine_splitting
+      - add_zdc_cylinders
     #study:
     #  name: genetic
     #  sampler:
