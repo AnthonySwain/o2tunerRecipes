@@ -169,8 +169,8 @@ def add_zdc_cylinders(inspectors, config):
         R = fixed_R_added
     
 
-        Z_min_list.append(Zmin + delta_Z_positive*(i))
-        Z_max_list.append(Zmin + delta_Z_positive*(i+1))
+        Z_min_list.append(Zmax + delta_Z_positive*(i))
+        Z_max_list.append(Zmax + delta_Z_positive*(i+1))
         R_list.append(R)
 
     for i in range(half_no_cylinders):
@@ -200,9 +200,10 @@ def add_zdc_cylinders(inspectors, config):
     
     df = pd.DataFrame(new_data)
 
+    df2 = df.append(data)
 
 
-    print(df)
-    df.to_csv(new_csv_filepath,index=False)
+    print(df2)
+    df2.to_csv(new_csv_filepath,index=False)
 
     return(True)

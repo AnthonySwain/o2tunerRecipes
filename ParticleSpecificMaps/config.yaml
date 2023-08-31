@@ -101,7 +101,8 @@ stages_user:
     config :
       <<: *global_config
       number_of_cylinders : 100
-
+      Zextent : [-13000,13000]
+      R_added : 30
     
   
 stages_optimisation:
@@ -194,7 +195,7 @@ stages_optimisation:
   hyper_fine_ZDC:
     file: AddZDC.py
     objective: fine_tuning_cylinders_ZDC_only
-    jobs: 2     # desired number of jobs
+    jobs: 1     # desired number of jobs
     trials: 200  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
@@ -202,9 +203,8 @@ stages_optimisation:
     config:
       << : *global_config
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      RadialLeeWay_percent: 20
-      Zextent : [-13000,13000]
-      R_added : 60
+      RadialLeeWay_percent: 0.0001
+      
       
     deps:
       - baseline_hits
