@@ -50,12 +50,18 @@ def objective(trial, config):
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
+    
+    min = config["min"]
+    length = config["length"]
+    map_creation_macro = config["map_creation_macro_fullpath"]
+    
     save_file_line_by_line = config["voxels_sampled_file"]
     save_root_hashmap_file = config["hashmap_file"]
 
     #Creates the hashmap (first by writing 0,1s to a .txt file (sample_voxels) then reading this .txt file (create_hash_map))
-    optimise.sample_voxels(trial, nx * ny * nz, save_file_line_by_line)
-    optimise.create_hash_map(config["CreateHashMapFromTxtMacroFullPath"], save_file_line_by_line, nx, ny, nz, save_root_hashmap_file)
+    optimise.sample_voxels(trial, nx * ny * nz, save_file_line_by_line,map_creation_macro,
+                           save_root_hashmap_file,min,length,nx,ny,nz)
+    #optimise.create_hash_map(config["CreateHashMapFromTxtMacroFullPath"], save_file_line_by_line, nx, ny, nz, save_root_hashmap_file)
 
     #Run it 
     rel_steps_avg, rel_hits_avg = optimise.run_on_batch(config)

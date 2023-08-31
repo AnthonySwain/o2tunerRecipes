@@ -40,7 +40,6 @@ def extract_hits(path, o2_detectors, det_name_to_id):
                 hits[det_name_to_id[fields[0]]] = float(fields[1])
         return hits
 
-
 def extract_avg_steps(path):
     """
     Retrieve the average number of original and skipped steps over all events 
@@ -128,14 +127,29 @@ def run_on_batch(config):
     # replay the simulation
     #Is ZDC skip required here? 
     zdc_skip = config['zdc_skip']
+    NoVoxelMap = config['NoVoxelMap']
     if zdc_skip:
-        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-            f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}" --skipModules ZDC'
+        if NoVoxelMap:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}" --skipModules ZDC'
+
+        else:
+             cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}" --skipModules ZDC'
+
+    
+    
     
     else:
-        cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-            f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["hashmap_file"]}"'
+        if NoVoxelMap:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}"'
         
+        else:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}"'
+        
+    
 
     _, sim_log = run_command(cmd, log_file="sim.log")
 
@@ -148,7 +162,7 @@ def run_on_batch(config):
     # compute the loss and further metrics...
     return compute_metrics(hit_file, baseline_hits_file, sim_log, sim_log_baseline, config["O2DETECTORS"],loss_data_save_file)
 
-def sample_voxels(trial, n_voxels, save_file_line_by_line,map_creation_macro_fullpath,rel_root_hashmap_saveloc,min,length,nx,ny,nz):
+def sample_voxels(trial, n_voxels, save_file_line_by_line,map_creation_macro_fullpath):
     """
     create a simple single line .txt file with n_voxels of 0's or 1's
     """
@@ -164,8 +178,6 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line,map_creation_macro_ful
     chunk_size = 1000
     #np.savetxt(save_file_line_by_line, binary_list, fmt='%d', delimiter='', newline='')
 
-
-    process_command = f"root -l -b -q '{map_creation_macro_fullpath}(\"{rel_root_hashmap_saveloc}\",{nx},{ny},{nz},{min[0]},{min[1]},{min[2]},{length[0]},{length[1]},{length[2]})'"
     # Use a loop to send data in chunks through a pipe
     for i in range(0, len(binary_list), chunk_size):
         chunk = binary_list[i:i + chunk_size]
@@ -173,13 +185,18 @@ def sample_voxels(trial, n_voxels, save_file_line_by_line,map_creation_macro_ful
         # Pack the chunk as bytes
         data_bytes = chunk.tobytes()
 
-
         # Call the C++ program and pass the data bytes as stdin
-        process = subprocess.Popen([process_command], stdin=subprocess.PIPE)
+        process = subprocess.Popen([map_creation_macro_fullpath], stdin=subprocess.PIPE)
         process.stdin.write(data_bytes)
         process.stdin.close()
         process.wait()
             
+    '''
+    with open(save_file_line_by_line, "w") as f:
+        for nv in range(n_voxels):
+            on_or_off = trial.suggest_categorical(f"voxel_{nv}", [0, 1]) 
+            f.write(str(on_or_off))
+    '''
 
 def create_hash_map(macro_path, rel_txtfilepath, nx, ny, nz, rel_root_hashmap_saveloc):
     """
@@ -225,9 +242,21 @@ def relocate_file(filepath, destination):
         except Exception as e:
             print(f"Error copying {filepath}: {e}")
 
+def add_map_to_txt(txt_filepath,map_filepath, particles):
+    '''
+    Adds a map to the txt file which contains all the information about the maps.
+    '''
+    particle_string = "[" + ",".join(str(p) for p in particles) + "]"
+    line = f"{particle_string}|{map_filepath}\n"
 
-
-
+    try:
+        # Try to open the file in append mode
+        with open(txt_filepath, 'a') as file:
+            file.write(line)
+    except FileNotFoundError:
+        # If the file doesn't exist, create it and write the line
+        with open(txt_filepath, 'w') as file:
+            file.write(line)
 
 
 
