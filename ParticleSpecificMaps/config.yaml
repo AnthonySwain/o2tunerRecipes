@@ -73,6 +73,7 @@ stages_user:
     deps:
       - baseline
 
+  #Creating the next generation in the genetic algorithm 
   next_gen:
     python:
       file: genetic.py
@@ -86,6 +87,7 @@ stages_user:
       population : 100 #need to link this to the number of trials in the genetic optimisation
       fill_percent : 0.01 
 
+  #Splits a set of cylinders into more cylinders
   hyper_fine_splitting:
     python:
       file: reference.py
@@ -93,7 +95,8 @@ stages_user:
     config :
       <<: *global_config
       number_of_cylinders : 100
-   
+  
+  #Adds cylinders either side of the current set to meet the Z extent set below. 
   add_zdc_cylinders:
     python:
       file: reference.py
@@ -102,7 +105,7 @@ stages_user:
       <<: *global_config
       number_of_cylinders : 100
       Zextent : [-13000,13000]
-      R_added : 30
+      R_added : 80
     
   
 stages_optimisation:
@@ -162,6 +165,7 @@ stages_optimisation:
     deps:
       - baseline_hits
 
+  #Sane as above but doesn't use a voxel map -> much faster. 
   fine_tuning_code_injection:
     file: injected_root_macro_fine_tuning.py
     objective: fine_tuning_cylinders
@@ -172,16 +176,17 @@ stages_optimisation:
       #storage: sqlite:///opt.db
     config:
       << : *global_config
-
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       csv_filepath_geo : /home/answain/alice/CircularCrossSections/TestingNoVoxelMap/cylinder_data.csv #filepath to the csv folder with data about the cylinders
       ZaxisLeeway_percent: 25
       RadialLeeWay_percent: 50
+    deps:
+      - baseline_hits
 
-
+  #Splits a current file of cylinders into more cylinders and optimises radii
   hyper_fine:
     file: fine_tuning_fixed_Z.py
-    objective: fine_tuning_cylinders_fine
+    objective: fine_tuning_cylinders
     jobs: 2     # desired number of jobs
     trials: 200  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
@@ -191,7 +196,28 @@ stages_optimisation:
       << : *global_config
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
       RadialLeeWay_percent: 20
+    deps : 
+      - baseline_hits
+      - hyper_fine_splitting
 
+  #Optimises the radii of a set of cylinders
+  radii_tuning:
+    file: fine_tuning_fixed_Z.py
+    objective: fine_tuning_cylinders
+    jobs: 2     # desired number of jobs
+    trials: 200  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+      #storage: sqlite:///opt.db
+    config:
+      << : *global_config
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      RadialLeeWay_percent: 20
+    deps : 
+      - baseline_hits
+
+  #For including the ZDC detector in the simulations from a set of cylidners that was found
+  #when the ZDC detector wasn't included.
   hyper_fine_ZDC:
     file: AddZDC.py
     objective: fine_tuning_cylinders_ZDC_only
@@ -203,9 +229,7 @@ stages_optimisation:
     config:
       << : *global_config
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      RadialLeeWay_percent: 0.0001
-      
-      
+      RadialLeeWay_percent: 100      
     deps:
       - baseline_hits
       - add_zdc_cylinders

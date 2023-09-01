@@ -130,7 +130,6 @@ def hyper_fine_splitting(inspectors, config):
 
     return(True)
 
-
 def add_zdc_cylinders(inspectors, config):
     
     csv_file_path = config["csv_filepath_base_data"]

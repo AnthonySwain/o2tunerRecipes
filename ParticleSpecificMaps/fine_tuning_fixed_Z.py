@@ -28,7 +28,7 @@ O2_ROOT = environ.get("O2_ROOT") #Just the path to the O2 og enviroment
 MCSTEPLOGGER_ROOT = environ.get("MCSTEPLOGGER_ROOT")
 
 @needs_cwd
-def fine_tuning_cylinders_fine(trial,config):
+def fine_tuning_cylinders(trial,config):
     """
     Takes an optimal set of cylinders found so far (be it found using this algorithm of cylinder_xy for individual cylinders) from a csv file.
     Splits the cylinders into 3 groups: Main Barrel, Positive Z, Negative Z (positive/negative Z describe their position on the Z axis) (these groups will be indicated in the CSV file)
@@ -71,7 +71,7 @@ def fine_tuning_cylinders_fine(trial,config):
         #get the Z max of the cylinder
         Zmax = row['Zmax'] #get from dataframe
         Zmin = row['Zmin'] #get from dataframe
-        R_data = row['R']  #get from data frame
+        R_data = row['radius']  #get from data frame
 
         Rchosen = trial.suggest_float(f"R_cylinder_{cylinder_counter}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
         
