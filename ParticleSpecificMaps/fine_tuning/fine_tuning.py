@@ -40,10 +40,12 @@ def fine_tuning_cylinders(trial,config):
 
     Then we arrive at the inner barrel which will be defined by the radius given (will also be picked with some lee-way) as well as
     the inner Z values chosen from the detectors either side. 
+
+    Then makes a voxel map for all the cylinders and passes this onto the simulation (SLOW for multiple cylinders - see no_voxelmap version)
     """
 
     #Imports functions
-    absolute_filepath = "/home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py"
+    absolute_filepath = config["optimisation_framework_filepath"]
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
@@ -51,10 +53,10 @@ def fine_tuning_cylinders(trial,config):
     nx = config["n_voxels_x"]
     ny = config["n_voxels_y"]
     nz = config["n_voxels_z"]
-    save_root_hashmap_file = config["hashmap_file"]
+
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
-    csv_filepath = config['csv_filepath']
+    csv_filepath = config['csv_filepath_cylinders']
     data = pd.read_csv(csv_filepath)
 
     categories = ['positiveZ','negativeZ','mainBarrel']
@@ -182,11 +184,12 @@ def fine_tuning_cylinders(trial,config):
 
     optimise.add_map_to_txt(config["txt_of_maps"],main_barrel_filepath[0],values)
 
+
+    #Below is outdated - the voxel-maps are just passed by .txt file rather than as map that contains everything. 
     #now we have everything, add all the hashmaps
     #maybe put this as a function or something
     AddMapsMacroPath = config['AddMapsMacroFilePath'] #add it here
     maps_filepaths = main_barrel_filepath + file_paths_negativeZ + file_paths_positiveZ
-
     #add_all_maps(AddMapsMacroPath, maps_filepaths,save_root_hashmap_file,nx,ny,nz) #Not needed with new implementation
 
     #Run

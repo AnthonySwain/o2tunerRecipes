@@ -39,17 +39,19 @@ def fine_tuning_cylinders(trial,config):
 
     Then we arrive at the inner barrel which will be defined by the radius given (will also be picked with some lee-way) as well as
     the inner Z values chosen from the detectors either side. 
+
+    #Then passes a CSV of the cylinders onto the simulation
     """
 
     #Imports functions
-    absolute_filepath = "/home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py"
+    absolute_filepath = config["optimisation_framework_filepath"]
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
     penalty_below = config["penalty_below"]
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
-    csv_filepath = config['csv_filepath_geo']
+    csv_filepath = config['csv_filepath_cylinders']
     data = pd.read_csv(csv_filepath)
 
     csv_filepath_write = config['csv_filepath_write']
@@ -78,6 +80,8 @@ def fine_tuning_cylinders(trial,config):
     file_paths_positiveZ = []
     cylinder_counter_positiveZ = 0 # first cylinder = 0
 
+
+    #Goes over from negative direction and positive direction, choosing parameters 
     for index, row in positiveZ_data_sorted.iterrows():
         if cylinder_counter_positiveZ == 0: 
             #if no previous cylinder
@@ -118,7 +122,7 @@ def fine_tuning_cylinders(trial,config):
     file_paths_negativeZ = []
     cylinder_counter_negativeZ = 0
 
-    #check this to make sure all the positive and negatives are the right way round.
+    #
     for index, row in negativeZ_data_sorted.iterrows():
 
         
@@ -137,15 +141,10 @@ def fine_tuning_cylinders(trial,config):
             Zmax = row['Zmax'] #get from dataframe
             R_data = row['R'] #get from dataframe
             
-          
-
             Zmin_chosen = Zmin_values_negativeZ[cylinder_counter_negativeZ -1]
             Zmax_chosen = trial.suggest_float(f"minZ_negative{cylinder_counter_negativeZ}",Zmax*(1+leewayZ_axis_percent/100), Zmax*(1-leewayZ_axis_percent/100))
             Rchosen = trial.suggest_float(f"MaxR_negative{cylinder_counter_negativeZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
         
-        
-        
-
         Zmax_values_negativeZ.append(Zmax_chosen)
         Zmin_values_negativeZ.append(Zmin_chosen)
         innerR_values_negativeZ.append(Rchosen)
@@ -157,9 +156,6 @@ def fine_tuning_cylinders(trial,config):
 
         cylinder_counter_negativeZ +=1
     
-
-  
-
 
     Rmain_barrel = main_barrel_data.iloc[0]['R']
     to_check_main_barrel = main_barrel_data.iloc[0]['To_check']

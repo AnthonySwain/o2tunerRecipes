@@ -1,5 +1,5 @@
 '''
-For testing custom voxel maps against a reference simulation
+For testing custom maps (csv input) against a reference simulation
 '''
 
 import sqlite3
@@ -34,14 +34,14 @@ def Test_Custom_Map(trial,config):
     """
 
     #Imports functions
-    absolute_filepath = "/home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py"
+    absolute_filepath = config["optimisation_framework_filepath"]
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
     penalty_below = config["penalty_below"]
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
-    csv_filepath = config['csv_filepath_hyper_fine']
+    csv_filepath = config['csv_filepath_custom']
     data = pd.read_csv(csv_filepath)
 
     csv_filepath_write = config['csv_filepath_write']
@@ -106,7 +106,7 @@ def append_to_csv(Zmin, Zmax, radius, to_check, pdgs_list, csv_filepath):
         'Zmin': [Zmin],
         'Zmax': [Zmax],
         'radius': [radius],
-        'to_check': [to_check]
+        'To_check': [to_check]
     }
 
     for i, pdg in enumerate(pdgs_list):

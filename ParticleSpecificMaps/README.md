@@ -13,8 +13,9 @@ This will run the cylinder_xy optimisation found in "cylinder_xy/" in a folder c
 ## Note
 Some optimisations use voxel maps, using VecGeom. Some simply work out the geometry in the stepping function and stop the transport the particles that way - it should be obvious which optimisations do which. 
 
+## Optimisations
 
-**ExampleCSVInputs** contains examples of input CSV files that the optimisations below take as input. 
+***ExampleCSVInputs*** contains examples of input CSV files that the optimisations below take as input. 
 
 ### cylinder_xy
 Finds the optimal mapping for a cylinder given a certain region with Zmin,Zmax and maximum radius as constraints given.

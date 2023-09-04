@@ -1,0 +1,11 @@
+DetectorPart,Zmin,Zmax,radius,To_check,pdg1,pdg2,pdg3,ect...
+negativeZ,-12000,-3000,35,All,,,,
+negativeZ,-3000,-2189.07749,35,All,,,,
+negativeZ,-2189.07749,-1184.281341,326.4024073,All,,,,
+negativeZ,-1184.281341,-653.0860773,321.9676204,All,,,,
+mainBarrel,-653.0860773,704.878049,636.784266,All,,,,
+positiveZ,704.878049,1706.900202,128.3280051,All,,,,
+positiveZ,1706.900202,3000,35,All,,,,
+positiveZ,3000,12000,35,All,,,,
+negativeZ,-14000,-12000,5,All,,,,
+positiveZ,12000,14000,5,All,,,,

@@ -8,26 +8,27 @@ global_config: &global_config
   reference_dir: &reference_dir reference   # the reference directory
   baseline_dir: &baseline_dir baseline      # the baseline directory
   optimisation_dir: &opt_name optimisation  # the optimisation directory and name
-  voxels_sampled_file: voxels.txt
-  hashmap_file: hashmap.root
+
+  #Voxelmap info.
   n_voxels_x: 200
   n_voxels_y: 200
   n_voxels_z: 600
-  CreateHashMapFromTxtMacroFullPath: /home/answain/alice/AliceO2MacroDev/HashMaps/CreateHashMapFromTxt.C
+
+  #Filepath to the radial hashmap creation macro
   CreateRadialHashMapFullPath : /home/answain/alice/AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
+
+  #Filepath to the analyzeHits macro 
   analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
-  Loss_data_save_file : LossCalcData.txt
+  Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
+
   txt_of_maps : maps.txt 
-
-
-  saveNextGen : HashMaps
   
-  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
-  NoVoxelMap : True #if not using voxel maps.
+  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by the code injection
-  
-  csv_filepath_base_data : /home/answain/alice/CircularCrossSections/AddZDC/cylinder_data.csv #filepath to the csv folder with data about the cylinders
-  csv_filepath_hyper_fine :  /home/answain/alice/CircularCrossSections/Custom/cylinders.csv
+
+  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
+
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -50,14 +51,14 @@ stages_user:
 
   reference:
     python:
-      file: reference.py
+      file: ../reference.py
       entrypoint: reference
     config: *global_config
     cwd: *reference_dir
 
   baseline:
     python:
-      file: reference.py
+      file: ../reference.py
       entrypoint: baseline
     config: *global_config
     cwd: *baseline_dir
@@ -66,86 +67,17 @@ stages_user:
 
   baseline_hits:
     python:
-      file: reference.py
+      file: ../reference.py
       entrypoint: baseline_hits
     config: *global_config
     cwd: *baseline_dir
     deps:
-      - baseline
-
-  #Creating the next generation in the genetic algorithm 
-  next_gen:
-    python:
-      file: genetic.py
-      entrypoint: next_gen
-    config :
-      <<: *global_config
-      DBFilepath : genetic.db
-      KeepPercent : 0.1
-      mutation_rate_percentage : 0.0001
-      saveBredMaps : Children
-      population : 100 #need to link this to the number of trials in the genetic optimisation
-      fill_percent : 0.01 
-
-  #Splits a set of cylinders into more cylinders
-  hyper_fine_splitting:
-    python:
-      file: reference.py
-      entrypoint: hyper_fine_splitting
-    config :
-      <<: *global_config
-      number_of_cylinders : 100
-  
-  #Adds cylinders either side of the current set to meet the Z extent set below. 
-  add_zdc_cylinders:
-    python:
-      file: reference.py
-      entrypoint: add_zdc_cylinders
-    config :
-      <<: *global_config
-      number_of_cylinders : 100
-      Zextent : [-13000,13000]
-      R_added : 80
-    
+      - baseline  
   
 stages_optimisation:
-  optimisation:
-    file: inner_barrel.py
-    objective: objective
-    jobs: 2     # desired number of jobs
-    trials: 10  # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      storage: #sqlite:///opt.db
-    config: 
-      << : *global_config
-      rel_hits_cutoff: 0.95    # desired minimum drop of relative ratio of hits  
-    deps:
-      - baseline_hits
-
-
-  #For finding the optimal cylinders for ZDC/Muon detectors 
-  cylinder_xy:
-    file: cylinder_xy.py
-    objective: cylinder_xy
-    jobs: 1    # desired number of jobs
-    trials: 100  # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      #storage: sqlite:///opt.db
-    config:
-      << : *global_config
-      
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
-      Zmin : -3000  # the zmin zmax basicailly tell the optimiser where to look to optimise
-      Zmax : -500 #
-      particle_map : [All_but,13,-13] #LIST! which particles to be included in the map
-    deps:
-      - baseline_hits
 
   #Takes a set of cylinders from a CSV file and tries to optimise further
-  fine_tuning_cylinders:
+  fine_tuning:
     file: fine_tuning.py
     objective: fine_tuning_cylinders
     jobs: 1    # desired number of jobs
@@ -157,10 +89,10 @@ stages_optimisation:
       << : *global_config
 
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      csv_filepath : /home/answain/alice/CircularCrossSections/ParticleSpecificMapsTest/cylinder_data.csv #filepath to the csv folder with data about the cylinders
+      csv_filepath_cylinders : /home/answain/alice/TestingFolders/TestingCleanCode/FineTuning/fine_tuning.csv #filepath to the csv folder with data about the cylinders
       ZaxisLeeway_percent: 5
       RadialLeeWay_percent: 5
-
+      NoVoxelMap : False 
       AddMapsMacroFilePath : /home/answain/alice/AliceO2MacroDev/HashMaps/AddHashMaps.C 
     deps:
       - baseline_hits
@@ -177,93 +109,9 @@ stages_optimisation:
     config:
       << : *global_config
       rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      csv_filepath_geo : /home/answain/alice/CircularCrossSections/TestingNoVoxelMap/cylinder_data.csv #filepath to the csv folder with data about the cylinders
-      ZaxisLeeway_percent: 25
-      RadialLeeWay_percent: 50
+      csv_filepath_cylinders : /home/answain/alice/TestingFolders/TestingCleanCode/FineTuning/fine_tuning.csv  #filepath to the csv folder with data about the cylinders
+      NoVoxelMap : True
+      ZaxisLeeway_percent: 25 #Same as below but for Z
+      RadialLeeWay_percent: 50 #What leeway is given to radius guesses in the optimisations (% above / below the current value.)    
     deps:
       - baseline_hits
-
-  #Splits a current file of cylinders into more cylinders and optimises radii
-  hyper_fine:
-    file: fine_tuning_fixed_Z.py
-    objective: fine_tuning_cylinders
-    jobs: 2     # desired number of jobs
-    trials: 200  # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      #storage: sqlite:///opt.db
-    config:
-      << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      RadialLeeWay_percent: 20
-    deps : 
-      - baseline_hits
-      - hyper_fine_splitting
-
-  #Optimises the radii of a set of cylinders
-  radii_tuning:
-    file: fine_tuning_fixed_Z.py
-    objective: fine_tuning_cylinders
-    jobs: 1     # desired number of jobs
-    trials: 200  # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      #storage: sqlite:///opt.db
-    config:
-      << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      RadialLeeWay_percent: 20
-    deps : 
-      - baseline_hits
-
-
-  Test_Custom_Map:
-    file: Test_Custom_Map.py
-    objective: Test_Custom_Map
-    jobs: 1     # desired number of jobs
-    trials: 1 # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      #storage: sqlite:///opt.db
-    config:
-      << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-    deps : 
-      - baseline_hits
-
-  #For including the ZDC detector in the simulations from a set of cylidners that was found
-  #when the ZDC detector wasn't included.
-  hyper_fine_ZDC:
-    file: AddZDC.py
-    objective: fine_tuning_cylinders_ZDC_only
-    jobs: 1     # desired number of jobs
-    trials: 200  # desired number of trials
-    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
-      name: *opt_name
-      #storage: sqlite:///opt.db
-    config:
-      << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
-      RadialLeeWay_percent: 100      
-    deps:
-      - baseline_hits
-      - add_zdc_cylinders
-    #study:
-    #  name: genetic
-    #  sampler:
-    #    name: NSGAII
-    #    args:
-    #     population_size: 50
-          #mutation_prob: 0.01
-          #crossover: 
-          #crossover_prob:
-          #swapping_prob:
-
-
-# evaluate:
-#      python:
-#    file: evaluate.py
-#    entrypoint: evaluate
-#    optimisations:
-#      - optimisation
-#    config: *global_config

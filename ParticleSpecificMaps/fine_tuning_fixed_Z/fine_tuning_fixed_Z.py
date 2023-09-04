@@ -1,6 +1,6 @@
 '''
 Fine tuning a set of cylinders i.e give their Z extents and inner radii and this will try to optimise further. 
-Made to output a CSV file that will be read by an injected root macro in the stepping function. 
+Made to output a CSV file that will be read in O2MCApplicationBase and applied to particle transport
 '''
 
 import sqlite3
@@ -31,19 +31,11 @@ MCSTEPLOGGER_ROOT = environ.get("MCSTEPLOGGER_ROOT")
 def fine_tuning_cylinders(trial,config):
     """
     Takes an optimal set of cylinders found so far (be it found using this algorithm of cylinder_xy for individual cylinders) from a csv file.
-    Splits the cylinders into 3 groups: Main Barrel, Positive Z, Negative Z (positive/negative Z describe their position on the Z axis) (these groups will be indicated in the CSV file)
-
-    Then for Positive Z / Negative Z, works from the outside in towards the main barrel, for each cylinder choosing Zmax/Zmin/radius with some leeway from 
-    what was given in the CSV file (e.g. can pick from +-50 either side of the given values (50 is arbitary, will be different for Z vs radius))
-
-    The outer Z value for a cylinder is defined by the previous's cylinder inner Z value to connect the cylinders. 
-
-    Then we arrive at the inner barrel which will be defined by the radius given (will also be picked with some lee-way) as well as
-    the inner Z values chosen from the detectors either side. 
+    Tries to optimise their radii further. 
     """
 
     #Imports functions
-    absolute_filepath = "/home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py"
+    absolute_filepath = config["optimisation_framework_filepath"]
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
