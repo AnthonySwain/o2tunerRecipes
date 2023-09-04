@@ -8,4 +8,4 @@ d: This is the full extent of the readme that I am going to write... <br>
 
 Apart from the genetic algorithm...
 # Genetic Algorithm
-This is something that is not implemented in the O2pdgspecific build. This is a ML algorithm but is very barebones and O2Tuner provides a much more sophisticated genetic algorithm. However, this has the one advantage that it is significantly faster than O2Tuner currently. Either way, I wouldn't reccomend its use... but this is just to know I made this once. 
+This is something that is not implemented in the O2pdgspecific build. This is a ML algorithm but is very barebones and O2Tuner provides a much more sophisticated genetic algorithm. However, this has the one advantage that it is significantly faster than O2Tuner... currently. Either way, I wouldn't reccomend its use... but this is just to know I made this once. 
