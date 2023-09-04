@@ -1,9 +1,13 @@
 # Brief Overview of the optimisations for the O2pdgspecific build
 
 ## Prerequisites
-The AliceO2 build with the modified stepping function can be found here: https://github.com/AnthonySwain/AliceO2/tree/ParticleSpecificMaps 
+The AliceO2 build (O2pdgspecific) with the modified stepping function can be found here: https://github.com/AnthonySwain/AliceO2/tree/ParticleSpecificMaps. The relevant readme is found in the "Steer" directory.
 
 The macros found in this repo - https://github.com/AnthonySwain/AliceO2MacroDev - are used throughout. The filepaths in the config files may (will) need changing to point towards the macros found in this repo.
+
+Some optimisations make use of voxelmaps made using VecGeom - https://gitlab.cern.ch/VecGeom/VecGeom/-/blob/89a05d148cc708d4efc2e7b0eb6e2118d2610057/VecGeom/base/FlatVoxelHashMap.h#L207
+
+This framework is built upon O2Tuner - https://github.com/AliceO2Group/o2tuner 
 
 ## Commands
 o2tuner -w voxels_test -s cylinder_xy -c /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/cylinder_xy/config.yaml

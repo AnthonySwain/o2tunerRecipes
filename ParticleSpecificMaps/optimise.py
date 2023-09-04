@@ -124,8 +124,7 @@ def run_on_batch(config):
 
     loss_data_save_file = config['Loss_data_save_file']
 
-    # replay the simulation
-    #Is ZDC skip required here? 
+    # replay the simulation 
     zdc_skip = config['zdc_skip']
     NoVoxelMap = config['NoVoxelMap']
     if zdc_skip:
