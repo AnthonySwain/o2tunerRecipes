@@ -200,9 +200,6 @@ def add_zdc_cylinders(inspectors, config):
     df = pd.DataFrame(new_data)
 
     df2 = df.append(data)
-
-
-    print(df2)
     df2.to_csv(new_csv_filepath,index=False)
 
     return(True)

@@ -1,0 +1,103 @@
+global_config: &global_config
+  engine: TGeant4
+  generator: pythia8pp
+  events: 5
+  o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
+  penalty_below : 10                      # Penalty applied if below desired minimum drop of relative ratio of hits
+  hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
+  reference_dir: &reference_dir reference   # the reference directory
+  baseline_dir: &baseline_dir baseline      # the baseline directory
+  optimisation_dir: &opt_name optimisation  # the optimisation directory and name
+  
+  #Voxelmap info.
+  hashmap_file: hashmap.root
+  n_voxels_x: 200
+  n_voxels_y: 200
+  n_voxels_z: 600
+
+  #Filepath to the radial hashmap creation macro
+  CreateRadialHashMapFullPath : /home/answain/alice/AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
+
+  #Filepath to the analyzeHits macro 
+  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
+
+  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  NoVoxelMap : False # True if not using voxel maps.
+
+  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
+
+  #Txt file which tells the simulation which voxel_maps to use
+  txt_of_maps : maps.txt 
+
+  O2DETECTORS: # all detectors we have
+    - ITS
+    - TOF
+    - EMC
+    - TRD #doesnt work in analyzeHits.C
+    - PHS
+    - FT0 #doesnt work in analyzeHits.C
+    - HMP 
+    - MFT
+    - FDD
+    - FV0
+    - MCH
+    - MID
+    - CPV
+    - ZDC # May be removed from most optimisations for speed-up (see zdc_skip variable above) 
+    - TPC
+
+stages_user:
+
+  reference:
+    python:
+      file: ../reference.py
+      entrypoint: reference
+    config: *global_config
+    cwd: *reference_dir
+
+  baseline:
+    python:
+      file: ../reference.py
+      entrypoint: baseline
+    config: *global_config
+    cwd: *baseline_dir
+    deps:
+      - reference 
+
+  baseline_hits:
+    python:
+      file: ../reference.py
+      entrypoint: baseline_hits
+    config: *global_config
+    cwd: *baseline_dir
+    deps:
+      - baseline
+  
+stages_optimisation:
+  #For finding the optimal cylinders for ZDC/Muon detectors 
+  cylinder_xy:
+    file: cylinder_xy.py
+    objective: cylinder_xy
+    jobs: 1    # desired number of jobs
+    trials: 100  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+    config:
+      << : *global_config
+      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      Rmax : 1000 #Maximum radius allowed to be chosen (chooses between 0 and Rmax)
+      
+      #Z region where the cylinder can be 
+      Zmin : -3000 
+      Zmax : -500 
+
+      
+      #LIST! which particles to be included in the map
+      # Can look like [All] for all particles transport to be stopped outside the cylinder
+      # OR [13,10,-10,-13, ect...]  for these specific particles transport to be stopped outside the cylinder
+      # OR [All_but, 13, 10] for all BUT these specific particles transport to be stopped outside the cylinder
+      particle_map : [All_but,13,-13] 
+    
+    deps:
+      - baseline_hits

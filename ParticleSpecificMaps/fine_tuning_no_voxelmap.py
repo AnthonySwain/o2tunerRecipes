@@ -1,6 +1,5 @@
 '''
-Fine tuning a set of cylinders i.e give their Z extents and inner radii and this will try to optimise further. 
-Made to output a CSV file that will be read by an injected root macro in the stepping function. 
+This is pretty much the same as fine_tuning but it does not use voxel maps.
 '''
 
 import sqlite3

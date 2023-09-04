@@ -1,6 +1,5 @@
 '''
-Fine tuning a set of cylinders i.e give their Z extents and inner radii and this will try to optimise further. 
-The format to give is a CSV file, filepath given in the config file. 
+This is pretty much the same as fine_tuning but it does not use voxel maps.
 '''
 
 import sqlite3
@@ -48,14 +47,12 @@ def fine_tuning_cylinders(trial,config):
 
     #Get neccessary information from the config file
     penalty_below = config["penalty_below"]
-    nx = config["n_voxels_x"]
-    ny = config["n_voxels_y"]
-    nz = config["n_voxels_z"]
-    save_root_hashmap_file = config["hashmap_file"]
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
-    csv_filepath = config['csv_filepath']
+    csv_filepath = config['csv_filepath_geo']
     data = pd.read_csv(csv_filepath)
+
+    csv_filepath_write = config['csv_filepath_write']
 
     categories = ['positiveZ','negativeZ','mainBarrel']
 
@@ -105,20 +102,16 @@ def fine_tuning_cylinders(trial,config):
         Zmax_values_positiveZ.append(Zmax_chosen)
         Zmin_values_positiveZ.append(Zmin_chosen)
         innerR_values_positiveZ.append(Rchosen)
-        filepath = f"positiveZmap{cylinder_counter_positiveZ}.root"
-        file_paths_positiveZ.append(filepath)
 
-
-        #then go create a cylinder, queen
-        optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, filepath,Rchosen,Zextent=[Zmin_chosen,Zmax_chosen])
-        
-        
-        values = row[4:].dropna().tolist()  # Drop NaN values and convert to list
-        optimise.add_map_to_txt(config["txt_of_maps"],filepath,values)
-        #function here which adds the mapfilepath and particles to delete to a .txt file
+    
+        #Writes the data to csv
+        to_check = row['To_check']
+        pdgs_list= row[5:].dropna().tolist()  # Drop NaN values and convert to list
+        append_to_csv(Zmin_chosen,Zmax_chosen,Rchosen,to_check,pdgs_list, csv_filepath_write)
 
         cylinder_counter_positiveZ +=1
     
+
     Zmin_values_negativeZ = []
     Zmax_values_negativeZ = []
     innerR_values_negativeZ = []
@@ -143,51 +136,40 @@ def fine_tuning_cylinders(trial,config):
         else:
             Zmax = row['Zmax'] #get from dataframe
             R_data = row['R'] #get from dataframe
+            
+          
 
             Zmin_chosen = Zmin_values_negativeZ[cylinder_counter_negativeZ -1]
             Zmax_chosen = trial.suggest_float(f"minZ_negative{cylinder_counter_negativeZ}",Zmax*(1+leewayZ_axis_percent/100), Zmax*(1-leewayZ_axis_percent/100))
             Rchosen = trial.suggest_float(f"MaxR_negative{cylinder_counter_negativeZ}", R_data*(1 - leewayRadial_percent/100), R_data*(1+leewayRadial_percent/100))
-
+        
+        
+        
 
         Zmax_values_negativeZ.append(Zmax_chosen)
         Zmin_values_negativeZ.append(Zmin_chosen)
         innerR_values_negativeZ.append(Rchosen)
-        filepath = f"negativeZmap{cylinder_counter_negativeZ}.root"
-        file_paths_negativeZ.append(filepath)
-
-
-        #then go create a cylinder, queen
-        optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, filepath,Rchosen,Zextent=[Zmin_chosen,Zmax_chosen])
-
-        #function here which adds the mapfilepath and particles to delete to a .txt file
-        values = row[4:].dropna().tolist()  # Drop NaN values and convert to list
-
-        optimise.add_map_to_txt(config["txt_of_maps"],filepath,values)
+    
+        #Writes the data to csv
+        to_check = row['To_check']
+        pdgs_list= row[5:].dropna().tolist()  # Drop NaN values and convert to list
+        append_to_csv(Zmin_chosen,Zmax_chosen,Rchosen,to_check,pdgs_list, csv_filepath_write)
 
         cylinder_counter_negativeZ +=1
     
 
   
 
-    Rmain_barrel = main_barrel_data.iloc[0]['R']
-    R_mainbarrel_chosen = trial.suggest_float("RmainBarrel", Rmain_barrel*(1- leewayRadial_percent/100), Rmain_barrel*(1+ leewayRadial_percent/100)) 
-    main_barrel_filepath = ["MainBarrelMap.root"]
 
+    Rmain_barrel = main_barrel_data.iloc[0]['R']
+    to_check_main_barrel = main_barrel_data.iloc[0]['To_check']
+
+    R_mainbarrel_chosen = trial.suggest_float("RmainBarrel", Rmain_barrel*(1- leewayRadial_percent/100), Rmain_barrel*(1+ leewayRadial_percent/100)) 
     Z_barrel_max = Zmin_values_positiveZ[-1]
     Z_barrel_min = Zmax_values_negativeZ[-1]
 
-    optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, main_barrel_filepath[0],R_mainbarrel_chosen,Zextent=[Z_barrel_min,Z_barrel_max])
-    #function here which adds the mapfilepath and particles to delete to a .txt file
-    values = main_barrel_data.iloc[0][4:].dropna().tolist()  # Drop NaN values and convert to list
-
-    optimise.add_map_to_txt(config["txt_of_maps"],main_barrel_filepath[0],values)
-
-    #now we have everything, add all the hashmaps
-    #maybe put this as a function or something
-    AddMapsMacroPath = config['AddMapsMacroFilePath'] #add it here
-    maps_filepaths = main_barrel_filepath + file_paths_negativeZ + file_paths_positiveZ
-
-    #add_all_maps(AddMapsMacroPath, maps_filepaths,save_root_hashmap_file,nx,ny,nz) #Not needed with new implementation
+    pdgs_list= main_barrel_data.iloc[0][5:].dropna().tolist()  # Drop NaN values and convert to list
+    append_to_csv(Z_barrel_min,Z_barrel_max,R_mainbarrel_chosen,to_check_main_barrel,pdgs_list, csv_filepath_write)
 
     #Run
     rel_steps_avg, rel_hits_avg = optimise.run_on_batch(config)
@@ -199,31 +181,39 @@ def fine_tuning_cylinders(trial,config):
 
     return optimise.compute_loss(rel_hits_avg, rel_steps_avg, config["rel_hits_cutoff"],penalty_below)
 
-def add_all_maps(AddMapsMacroPath,map_filepaths,final_save_loc,Nx,Ny,Nz):
-    #goes through all of the hashmaps and adds them together. 
+def append_to_csv(Zmin, Zmax, radius, to_check, pdgs_list, csv_filepath):
+    # Load existing CSV if it exists, otherwise create a new DataFrame
+    try:
+        existing_df = pd.read_csv(csv_filepath)
+        #max_lengths = [len(pdgs_list), existing_df['pdgs_list'].apply(lambda x: len(eval(x))).max()]
+        #max_pdgs_length = max(max_lengths, default=0)
 
-    for i in range(len(map_filepaths)-1):
- 
-       # add the first 2 maps, then add the third onto those, then 4th ect...
-        if i == 0:
-            MapPath1 = map_filepaths[i]
-            MapPath2 = map_filepaths[i + 1]
-        else:
-            MapPath1 = MapSaveLoc
-            MapPath2 = map_filepaths[i + 1]
+    except FileNotFoundError:
+        existing_df = pd.DataFrame()
+        #max_pdgs_length = len(pdgs_list)
 
-        if i == (len(map_filepaths)-2):
-            MapSaveLoc = final_save_loc
-            print(MapSaveLoc)
-        
-        else:
-            MapSaveLoc = f"AddedHashMaps{i}.root" 
-        
+    # Determine the maximum length of pdgs_list among all rows
+    
 
-        
-        add_maps = f"root -l -b -q '{AddMapsMacroPath}(\"{MapPath1}\",\"{MapPath2}\",{Nx},{Ny},{Nz},\"{MapSaveLoc}\")'"
+    # Fill pdgs_list with NaNs to match the maximum length
+    #pdgs_list += [np.nan] * (max_pdgs_length - len(pdgs_list))
 
-        #Runs the macro
-        _, hashmap_file = run_command(add_maps, log_file="hits.dat")
+    # Create a DataFrame for the new row
+    new_data = {
+        'Zmin': [Zmin],
+        'Zmax': [Zmax],
+        'radius': [radius],
+        'to_check': [to_check]
+    }
 
- 
+    for i, pdg in enumerate(pdgs_list):
+        new_data[f'pdg_{i+1}'] = pdg
+
+
+    new_df = pd.DataFrame(new_data)
+
+    # Append the new data to the existing DataFrame
+    updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+
+    # Write the updated DataFrame to the CSV file
+    updated_df.to_csv(csv_filepath, index=False)#,header=None)

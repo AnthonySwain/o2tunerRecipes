@@ -17,8 +17,6 @@ def evaluate(inspectors, config):
 
     best_cwd = insp.get_annotations_per_trial("cwd")[index]
 
-
-
     for i, insp in enumerate(inspectors):
         figure, _ = insp.plot_loss_feature_history(map_params=map_params, n_most_important=20)
         figure.tight_layout()
