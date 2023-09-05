@@ -1,0 +1,99 @@
+global_config: &global_config
+  engine: TGeant4
+  generator: pythia8pp
+  events: 5
+  o2_sim_log: sim.log                       # the file name to be used to pipe the output of each simulation into
+  penalty_below : 10                      # Penalty applied if below desired minimum drop of relative ratio of hits
+  hits_log_file: &hits_file hits.dat        # common name of file to pipe hit evaluation into (when using O2's analyzeHits.C macro)
+  reference_dir: &reference_dir reference   # the reference directory
+  baseline_dir: &baseline_dir baseline      # the baseline directory
+  optimisation_dir: &opt_name optimisation  # the optimisation directory and name
+
+  #Filepath to the analyzeHits macro 
+  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
+
+  
+  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_pipe_only : True #Only create the geometry for the ZDC detector and pipe. 
+
+  NoVoxelMap : True #if not using voxel maps.
+
+  csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by O2MCApplication
+
+  #base_data only needed for hyper_fine_splittng. If adjusting radii only, put the csv file path under "csv_filepath_hyper_fine"
+  csv_filepath_base_data : /home/answain/alice/TestingFolders/TestingCleanCode/FineTuningFixedZ/fine_tuning_fixed_Z.csv #filepath to the csv folder with data about the cylinders
+  csv_filepath_hyper_fine :  /home/answain/alice/CircularCrossSections/ZDC_only/cylinder_data.csv
+
+  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
+
+  O2DETECTORS: # all detectors we have
+    - ITS
+    - TOF
+    - EMC
+    - TRD #doesnt work in analyzeHits.C
+    - PHS
+    - FT0 #doesnt work in analyzeHits.C
+    - HMP 
+    - MFT
+    - FDD
+    - FV0
+    - MCH
+    - MID
+    - CPV
+    - ZDC # May be removed from most optimisations for speed-up (see zdc_skip variable above) 
+    - TPC
+
+stages_user:
+
+  reference:
+    python:
+      file: ../reference.py
+      entrypoint: reference
+    config: *global_config
+    cwd: *reference_dir
+
+  baseline:
+    python:
+      file: ../reference.py
+      entrypoint: baseline
+    config: *global_config
+    cwd: *baseline_dir
+    deps:
+      - reference 
+
+  baseline_hits:
+    python:
+      file: ../reference.py
+      entrypoint: baseline_hits
+    config: *global_config
+    cwd: *baseline_dir
+    deps:
+      - baseline
+
+  #Splits a set of cylinders into more cylinders
+  hyper_fine_splitting:
+    python:
+      file: hyper_fine_splitting.py
+      entrypoint: hyper_fine_splitting
+    config :
+      <<: *global_config
+      number_of_cylinders : 100
+  
+stages_optimisation:
+  #Optimises the radii of a set of cylinders
+  ZDC_only:
+    file: ZDC_only.py
+    objective: ZDC_only
+    jobs: 1     # desired number of jobs
+    trials: 20  # desired number of trials
+    study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
+      name: *opt_name
+      #storage: sqlite:///opt.db
+    config:
+      << : *global_config
+      rel_hits_cutoff: 0.95   # desired minimum drop of relative ratio of hits   
+      RadialLeeWay_percent: 50
+    deps : 
+      - baseline_hits
+

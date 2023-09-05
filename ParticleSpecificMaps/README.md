@@ -30,7 +30,7 @@ filled with cylidners and then tries to optimise further to find the optimal Z e
 
 ### fine_tuning_fixed_Z
 Same as fine_tuning but only the radius of the cylinders is tuned, not the Z extents. 
-This also splits the cylinders given into more cylinders depending on the optimisation chosen.
+This also splits the cylinders given into more cylinders depending on the optimisation chosen (hyper_fine_splitting does this)
  I.e if 5 cylinders are given to define the cuts, this is turned into how many specified (i.e. 50) which are then optimised to perform a "hyper_fine" 
  tuning. The code isn't the most clean so to to perform the hyper_fine tuning careful consideration of the csv filepath is needed. 
 

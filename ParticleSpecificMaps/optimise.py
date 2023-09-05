@@ -114,9 +114,8 @@ def compute_loss(rel_hits, rel_steps, rel_hits_cutoff, penalty_below):
 
 def run_on_batch(config):
     # in the reference directory we have the MCStepoLoggerOutput.root file
-    reference_dir = resolve_path(config['reference_dir']) 
-    kine_file = join(reference_dir, "o2sim_Kine.root")
-    steplogger_file = join(reference_dir, "MCStepLoggerOutput.root")
+     
+   
     # in the baseline directory we have the baseline steps and baseline hits
     baseline_dir = resolve_path(config['baseline_dir'])
     sim_log_baseline = join(baseline_dir, config["o2_sim_log"])
@@ -125,30 +124,8 @@ def run_on_batch(config):
     loss_data_save_file = config['Loss_data_save_file']
 
     # replay the simulation 
-    zdc_skip = config['zdc_skip']
-    NoVoxelMap = config['NoVoxelMap']
-    if zdc_skip:
-        if NoVoxelMap:
-            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}" --skipModules ZDC'
-
-        else:
-             cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}" --skipModules ZDC'
-
     
-    
-    
-    else:
-        if NoVoxelMap:
-            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}"'
-        
-        else:
-            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
-                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}"'
-        
-    
+    cmd = define_command(config)
 
     _, sim_log = run_command(cmd, log_file="sim.log")
 
@@ -160,6 +137,45 @@ def run_on_batch(config):
 
     # compute the loss and further metrics...
     return compute_metrics(hit_file, baseline_hits_file, sim_log, sim_log_baseline, config["O2DETECTORS"],loss_data_save_file)
+
+def define_command(config):
+    #Used to find which command to run in run_on_batch.
+    reference_dir = resolve_path(config['reference_dir'])
+    kine_file = join(reference_dir, "o2sim_Kine.root")
+    steplogger_file = join(reference_dir, "MCStepLoggerOutput.root")
+
+    zdc_skip = config['zdc_skip']
+    NoVoxelMap = config['NoVoxelMap']
+
+    if zdc_skip:
+        if NoVoxelMap:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}" --skipModules ZDC'
+
+        else:
+             cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}" --skipModules ZDC'
+
+    
+    
+    else:
+        if NoVoxelMap:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.GeoCutsCSVFile={config["csv_filepath_write"]}"'
+        
+        else:
+            cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay ' \
+                f'--configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file};GlobalSimProcs.blackholeVoxelFile={config["txt_of_maps"]}"'
+        
+    try:
+        zdc_pipe_only = config["zdc_pipe_only"]
+    except KeyError:
+        zdc_pipe_only = False
+
+    if (zdc_pipe_only):
+        cmd += " -m PIPE ZDC"
+
+    return cmd
 
 def sample_voxels(trial, n_voxels, save_file_line_by_line,map_creation_macro_fullpath):
     """

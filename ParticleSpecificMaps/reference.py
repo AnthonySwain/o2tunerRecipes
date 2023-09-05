@@ -35,6 +35,15 @@ def reference(inspectors, config):
         cmd = f'MCSTEPLOG_NO_MAGFIELD=1 MCSTEPLOG_TTREE=1 {preload}={MCSTEPLOGGER_ROOT}/lib/libMCStepLoggerInterceptSteps{lib_extension} ' \
           f'o2-sim-serial -n {events} -g {generator} -e {engine}'
     
+
+    try:
+        zdc_pipe_only = config["zdc_pipe_only"]
+    except KeyError:
+        zdc_pipe_only = False
+
+    if (zdc_pipe_only):
+        cmd += " -m PIPE ZDC"
+
     run_command(cmd, log_file=config["o2_sim_log"])
     return True
 
@@ -54,6 +63,16 @@ def baseline(inspectors, config):
     else:
         cmd = f'o2-sim-serial -n {config["events"]} -g extkinO2 --extKinFile {kine_file} -e MCReplay --configKeyValues="MCReplayParam.allowStopTrack=true;MCReplayParam.stepFilename={steplogger_file}"'
     
+
+    try:
+        zdc_pipe_only = config["zdc_pipe_only"]
+    except KeyError:
+        zdc_pipe_only = False
+
+    if (zdc_pipe_only):
+        cmd += " -m PIPE ZDC"
+
+
     run_command(cmd, log_file=config["o2_sim_log"])
 
     #extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
