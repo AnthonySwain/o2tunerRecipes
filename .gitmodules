@@ -1,0 +1,3 @@
+[submodule "AliceO2MacroDev"]
+	path = AliceO2MacroDev
+	url = https://github.com/AnthonySwain/AliceO2MacroDev.git
