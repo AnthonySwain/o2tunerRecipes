@@ -35,7 +35,7 @@ def ZDC_only(trial,config):
     """
 
     #Imports functions
-    absolute_filepath = config["optimisation_framework_filepath"]
+    absolute_filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), config["optimisation_framework_filepath"]))
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file

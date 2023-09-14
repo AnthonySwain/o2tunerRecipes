@@ -10,10 +10,11 @@ global_config: &global_config
   optimisation_dir: &opt_name optimisation  # the optimisation directory and name
 
   #Filepath to the analyzeHits macro 
-  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  analyzeHitsFilePath : ../../AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  optimisation_framework_filepath : ../optimise.py
+
   Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
 
-  
   zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
   zdc_pipe_only : True #Only create the geometry for the ZDC detector and pipe. 
 
@@ -22,10 +23,8 @@ global_config: &global_config
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by O2MCApplication
 
   #base_data only needed for hyper_fine_splittng. If adjusting radii only, put the csv file path under "csv_filepath_hyper_fine"
-  csv_filepath_base_data : /home/answain/alice/TestingFolders/TestingCleanCode/FineTuningFixedZ/fine_tuning_fixed_Z.csv #filepath to the csv folder with data about the cylinders
-  csv_filepath_hyper_fine :  /home/answain/alice/CircularCrossSections/ZDC_only/cylinder_data.csv
-
-  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
+  csv_filepath_base_data : ../../../fine_tuning_fixed_Z.csv #filepath to the csv folder with data about the cylinders
+  csv_filepath_hyper_fine :  ../../../cylinder_data.csv
 
   O2DETECTORS: # all detectors we have
     - ITS

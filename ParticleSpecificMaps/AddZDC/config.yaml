@@ -14,15 +14,15 @@ global_config: &global_config
   
   Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
   
-  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
   NoVoxelMap : True #if not using voxel maps.
 
   #CSV filepath that gets written to CWD of the trial that is called in O2MCApplicationBase to define the cuts.
   csv_filepath_write : cylinder_data.csv 
   
   #filepath to the csv folder with data about the cylinders that were optimised without the ZDC detector.
-  csv_filepath_base_data : /home/answain/alice/TestingFolders/TestingCleanCode/AddZDC/cylinder_data.csv
-  csv_filepath_ZDC_added:  /home/answain/alice/TestingFolders/TestingCleanCode/AddZDC/cylinder_data_w_ZDC.csv
+  csv_filepath_base_data : /home/answain/alice/CircularCrossSections/BenchMarking/Case2/cylinder_data.csv
+  csv_filepath_ZDC_added: /home/answain/alice/CircularCrossSections/BenchMarking/Case2/cylinder_data_W_ZDC.csv
 
   optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
 
@@ -77,11 +77,17 @@ stages_user:
       entrypoint: add_zdc_cylinders
     config :
       <<: *global_config
-      number_of_cylinders : 100
+      number_of_cylinders : 40
       Zextent : [-13000,13000]
-      R_added : 80
-    
+      R_added : 40
+
   
+  evaluate:
+        python: ../reference.py
+        entrypoint: evaluate
+    optimisations:
+        - AddZDC
+
 stages_optimisation:
   #For adding optimisation for the ZDC detector in the simulations from a set of cylidners that was found
   #when the ZDC detector wasn't included.
@@ -96,8 +102,8 @@ stages_optimisation:
       #storage: sqlite:///opt.db
     config:
       << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits, anything below, a penalty is applied to the loss function  
-      RadialLeeWay_percent: 100  #What leeway is given to radius guesses in the optimisations (% above / below the current value.)    
+      rel_hits_cutoff: 0.95   # desired minimum drop of relative ratio of hits, anything below, a penalty is applied to the loss function  
+      RadialLeeWay_percent: 20  #What leeway is given to radius guesses in the optimisations (% above / below the current value.)    
     deps:
       - baseline_hits
       - add_zdc_cylinders

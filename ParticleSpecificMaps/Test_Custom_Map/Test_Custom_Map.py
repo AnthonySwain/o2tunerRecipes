@@ -22,6 +22,7 @@ from o2tuner.io import parse_json, dump_json, dump_yaml, parse_yaml, exists_file
 from o2tuner.optimise import needs_cwd
 from o2tuner.config import resolve_path
 
+
 # Get environment variables we need to execute some cmds
 O2_ROOT = environ.get("O2_ROOT") #Just the path to the O2 og enviroment
 MCSTEPLOGGER_ROOT = environ.get("MCSTEPLOGGER_ROOT")
@@ -32,47 +33,49 @@ def Test_Custom_Map(trial,config):
     Takes a custom voxel map and uses it against a reference simulation to see how good the mapping is. Re-uses old code so it does create a new
     CSV which can be seen as in-efficient but it works. 
     """
+    
 
     #Imports functions
-    absolute_filepath = config["optimisation_framework_filepath"]
+    absolute_filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), config["optimisation_framework_filepath"]))
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
     penalty_below = config["penalty_below"]
 
     #Reads the CSV file into a panda and then breaks it into 3 different seperate dataframes 
-    csv_filepath = config['csv_filepath_custom']
-    data = pd.read_csv(csv_filepath)
+    if config["NoVoxelMap"] == True:
+        csv_filepath = config['csv_filepath_custom']
+        data = pd.read_csv(csv_filepath)
 
-    csv_filepath_write = config['csv_filepath_write']
+        csv_filepath_write = config['csv_filepath_write']
 
-    Zmin_values = []
-    Zmax_values = []
-    innerR_values = []
+        Zmin_values = []
+        Zmax_values = []
+        innerR_values = []
 
 
-    cylinder_counter = 0
+        cylinder_counter = 0
 
-    for index, row in data.iterrows():
-  
-        #if no previous cylinder
-        #get the Z max of the cylinder
-        Zmax = row['Zmax'] #get from dataframe
-        Zmin = row['Zmin'] #get from dataframe
-        R_data = row['radius']  #get from data frame
-
-        
-        Zmax_values.append(Zmax)
-        Zmin_values.append(Zmin)
-        innerR_values.append(R_data)
-
-        #Writes the data to csv
-        to_check = row['To_check']
-        pdgs_list= row[5:].dropna().tolist()  # Drop NaN values and convert to list
-        append_to_csv(Zmin,Zmax,R_data,to_check,pdgs_list, csv_filepath_write)
-
-        cylinder_counter +=1
+        for index, row in data.iterrows():
     
+            #if no previous cylinder
+            #get the Z max of the cylinder
+            Zmax = row['Zmax'] #get from dataframe
+            Zmin = row['Zmin'] #get from dataframe
+            R_data = row['radius']  #get from data frame
+
+            
+            Zmax_values.append(Zmax)
+            Zmin_values.append(Zmin)
+            innerR_values.append(R_data)
+
+            #Writes the data to csv
+            to_check = row['To_check']
+            pdgs_list= row[5:].dropna().tolist()  # Drop NaN values and convert to list
+            append_to_csv(Zmin,Zmax,R_data,to_check,pdgs_list, csv_filepath_write)
+
+            cylinder_counter +=1
+
 
     #Run
     rel_steps_avg, rel_hits_avg = optimise.run_on_batch(config)

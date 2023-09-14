@@ -10,18 +10,18 @@ global_config: &global_config
   optimisation_dir: &opt_name optimisation  # the optimisation directory and name
 
   #Filepath to the analyzeHits macro 
-  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  analyzeHitsFilePath : ../../AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  optimisation_framework_filepath : ../optimise.py
+
   Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
 
   
-  zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
+  zdc_skip : False #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
   NoVoxelMap : True #if not using voxel maps.
 
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by O2MCApplication
-  csv_filepath_base_data : /home/answain/alice/TestingFolders/TestingCleanCode/FineTuningFixedZ/fine_tuning_fixed_Z.csv #filepath to the csv folder with data about the cylinders
-  csv_filepath_hyper_fine :  /home/answain/alice/TestingFolders/TestingCleanCode/FineTuningFixedZ/hyperfine_tuning_fixed_Z.csv 
-
-  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
+  csv_filepath_base_data : ../../../cylinder_data.csv #filepath to the csv folder with data about the cylinders
+  csv_filepath_hyper_fine :  ../../../cylinder_data_hyper_fine.csv
 
   O2DETECTORS: # all detectors we have
     - ITS
@@ -100,13 +100,13 @@ stages_optimisation:
     file: fine_tuning_fixed_Z.py
     objective: fine_tuning_cylinders
     jobs: 1     # desired number of jobs
-    trials: 200  # desired number of trials
+    trials: 100  # desired number of trials
     study:      # where the study is stored (only give a name and leave out "storage" key if you do not have MySQL working, it will anyway fall back to the serial run if it cannot communicate with MySQL)
       name: *opt_name
       #storage: sqlite:///opt.db
     config:
       << : *global_config
-      rel_hits_cutoff: 0.99   # desired minimum drop of relative ratio of hits   
+      rel_hits_cutoff: 0.95   # desired minimum drop of relative ratio of hits   
       RadialLeeWay_percent: 20
     deps : 
       - baseline_hits

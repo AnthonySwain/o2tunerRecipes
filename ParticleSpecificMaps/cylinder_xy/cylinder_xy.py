@@ -41,7 +41,7 @@ def cylinder_xy(trial, config):
     """
 
     #Imports functions
-    absolute_filepath = config["optimisation_framework_filepath"]
+    absolute_filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), config["optimisation_framework_filepath"]))
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
@@ -71,8 +71,9 @@ def cylinder_xy(trial, config):
             
     Rchosen = trial.suggest_float("MaxR", 0,Rmax)
 
-    optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, save_root_hashmap_file,Rchosen,Zextent=[minZchosen,maxZchosen])
-
+    CreateRadialHashMap_Path = os.path.abspath(os.path.join(os.path.dirname(__file__), config["CreateRadialHashMapFullPath"]))
+    optimise.CreateRadialHashMap(trial, CreateRadialHashMap_Path, nx, ny, nz, filepath,Rchosen,Zextent=[Zmin_chosen,Zmax_chosen])
+        
     optimise.add_map_to_txt(config["txt_of_maps"],config["hashmap_file"],config["particle_map"])
     # rng = np.random.default_rng()
     # batch_id = rng.integers(0, batches)

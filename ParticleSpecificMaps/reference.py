@@ -148,3 +148,19 @@ def hyper_fine_splitting(inspectors, config):
     df.to_csv(new_csv_filepath,index=False)
 
     return(True)
+
+
+
+def evaluate(inspectors, config):
+    # for convenience
+    insp = inspectors[0]
+    # print losses of all successful trials
+    print(insp.get_losses())
+
+    # extracting some annotation
+    annotations = insp.get_annotation_per_trial("key")
+    print(annotations)
+
+    # plot the history of features/parameter values and the loss as a function of trials
+    fig, _ = insp.plot_loss_feature_history()
+    fig.savefig("loss_feature_history")

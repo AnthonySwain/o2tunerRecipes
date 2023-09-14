@@ -3,7 +3,11 @@
 ## Prerequisites
 The AliceO2 build (O2pdgspecific) with the modified stepping function can be found here: https://github.com/AnthonySwain/AliceO2/tree/ParticleSpecificMaps. The relevant readme is found in the "Steer" directory.
 
-The macros found in this repo - https://github.com/AnthonySwain/AliceO2MacroDev - are used throughout. The filepaths in the config files may (will) need changing to point towards the macros found in this repo.
+The macros found in this repo - https://github.com/AnthonySwain/AliceO2MacroDev - are used as a submodule. . The filepaths in the config files may (will) need changing to point towards the macros found in this repo.
+You will need to run: 
+git submodule init
+git submodule update
+
 
 Some optimisations make use of voxelmaps made using VecGeom - https://gitlab.cern.ch/VecGeom/VecGeom/-/blob/89a05d148cc708d4efc2e7b0eb6e2118d2610057/VecGeom/base/FlatVoxelHashMap.h#L207
 
@@ -20,6 +24,8 @@ Some optimisations use voxel maps, using VecGeom. Some simply work out the geome
 ## Optimisations
 
 ***ExampleCSVInputs*** contains examples of input CSV files that the optimisations below take as input. 
+
+***zdc_skip*** is a variable in all config files - it indicates whether the ZDC detectors should be included in the simulations. 
 
 ### cylinder_xy
 Finds the optimal mapping for a cylinder given a certain region with Zmin,Zmax and maximum radius as constraints given.
@@ -38,7 +44,11 @@ This also splits the cylinders given into more cylinders depending on the optimi
 Same as fine_tuning but does not use voxelmaps to speed up the optimisation process (creating voxel maps takes a while). Input is a CSV file which depics the Z extent and radii of cylndrical cuts.
 
 ### Test_Custom_Map
-Takes a csv file of cylinders and runs the map against a reference simulation to test how good it is. 
+Tests csv of cylinders, or set of voxel maps, and runs the map against a reference simulation to test how good it is. 
+To Note: 
+Needs to specify in config whether it is a voxel map or csv of cylinders with the NoVoxelMap variable.
+The csv of cylinders is called "cylinders_data.csv".
+
 
 ### AddZDC
 Takes a mapping which was created without the ZDC detectors (because ZDC takes so much computational power) and adds a specified amount of cylinders

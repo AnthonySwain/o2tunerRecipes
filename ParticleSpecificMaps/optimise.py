@@ -131,7 +131,8 @@ def run_on_batch(config):
 
     # extract the hits using O2 macro and pipe to file
     #extract_hits_root = abspath(join(O2_ROOT, "share", "macro", "analyzeHits.C"))
-    extract_hits_root = config['analyzeHitsFilePath'] #Uses custom analyzeHits file becasue of faulty detector analysis (hence not using a path above)
+    #extract_hits_root = config['analyzeHitsFilePath'] #Uses custom analyzeHits file becasue of faulty detector analysis (hence not using a path above)
+    extract_hits_root = os.path.abspath(os.path.join(os.path.dirname(__file__), config["analyzeHitsFilePath"]))
     cmd_extract_hits = f"root -l -b -q {extract_hits_root}"
     _, hit_file = run_command(cmd_extract_hits, log_file="hits.dat")
 

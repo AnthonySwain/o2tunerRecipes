@@ -10,18 +10,19 @@ global_config: &global_config
   optimisation_dir: &opt_name optimisation  # the optimisation directory and name
 
   #Filepath to the analyzeHits macro 
-  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  analyzeHitsFilePath : ../../AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  optimisation_framework_filepath : ../optimise.py
+
   Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
   
   zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
-  NoVoxelMap : True #if not using voxel maps.
+  NoVoxelMap : True #if not using voxel maps, i.e using csv of cylinders
 
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by O2MCApplication
 
-  csv_filepath_custom : /home/answain/alice/TestingFolders/TestingCleanCode/Custom/Test_Custom_Map.csv #filepath to the csv folder with data about the cylinders
- 
-  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
-
+  csv_filepath_custom : ../../../cylinder_data.csv #filepath to the csv folder with data about the cylinders
+  txt_of_maps : ../../../maps.txt
+  
   O2DETECTORS: # all detectors we have
     - ITS
     - TOF

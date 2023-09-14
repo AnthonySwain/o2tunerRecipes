@@ -15,10 +15,12 @@ global_config: &global_config
   n_voxels_z: 600
 
   #Filepath to the radial hashmap creation macro
-  CreateRadialHashMapFullPath : /home/answain/alice/AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
+  CreateRadialHashMapFullPath : ../../AliceO2MacroDev/HashMaps/CreateRadialHashMapXY.C
 
   #Filepath to the analyzeHits macro 
-  analyzeHitsFilePath : /home/answain/alice/AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  analyzeHitsFilePath : ../../AliceO2MacroDev/StepandHit_Analysis/analyzeHitsForOptimisation.C
+  optimisation_framework_filepath : ../optimise.py
+
   Loss_data_save_file : LossCalcData.txt #Where info used to calculate the loss function is saved
 
   txt_of_maps : maps.txt 
@@ -26,8 +28,6 @@ global_config: &global_config
   zdc_skip : True #whether or not to skip the ZDC detector module (True = Skip, False = Don't Skip)
   
   csv_filepath_write : cylinder_data.csv #CSV filepath that gets written to that is called by the code injection
-
-  optimisation_framework_filepath : /home/answain/alice/o2tunerRecipes/ParticleSpecificMaps/optimise.py
 
 
   O2DETECTORS: # all detectors we have

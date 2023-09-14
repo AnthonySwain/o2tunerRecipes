@@ -45,7 +45,7 @@ def fine_tuning_cylinders(trial,config):
     """
 
     #Imports functions
-    absolute_filepath = config["optimisation_framework_filepath"]
+    absolute_filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), config["optimisation_framework_filepath"]))
     optimise = imp.load_source("optimise", absolute_filepath)
 
     #Get neccessary information from the config file
@@ -112,7 +112,8 @@ def fine_tuning_cylinders(trial,config):
 
 
         #then go create a cylinder, queen
-        optimise.CreateRadialHashMap(trial, config["CreateRadialHashMapFullPath"], nx, ny, nz, filepath,Rchosen,Zextent=[Zmin_chosen,Zmax_chosen])
+        CreateRadialHashMap_Path = os.path.abspath(os.path.join(os.path.dirname(__file__), config["CreateRadialHashMapFullPath"]))
+        optimise.CreateRadialHashMap(trial, CreateRadialHashMap_Path, nx, ny, nz, filepath,Rchosen,Zextent=[Zmin_chosen,Zmax_chosen])
         
         
         values = row[4:].dropna().tolist()  # Drop NaN values and convert to list
