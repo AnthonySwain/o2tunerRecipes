@@ -27,6 +27,10 @@ Some optimisations use voxel maps, using VecGeom. Some simply work out the geome
 
 ***zdc_skip*** is a variable in all config files - it indicates whether the ZDC detectors should be included in the simulations. 
 
+***Events, Jobs & Trials*** should be given in the relevant config file.
+
+***VoxelMap dimensions*** should be given in the relevant config file.
+
 ### cylinder_xy
 Finds the optimal mapping for a cylinder given a certain region with Zmin,Zmax and maximum radius as constraints given.
 
