@@ -73,6 +73,11 @@ stages_user:
     cwd: *baseline_dir
     deps:
       - baseline  
+
+  evaluate:
+    python: 
+      file : ../reference.py
+      entrypoint: evaluate
   
 stages_optimisation:
 

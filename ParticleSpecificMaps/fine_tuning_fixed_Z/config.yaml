@@ -75,7 +75,13 @@ stages_user:
     config :
       <<: *global_config
       number_of_cylinders : 100
-  
+
+  evaluate:
+    python: 
+      file : ../reference.py
+      entrypoint: evaluate
+    optimisations:
+      - hyper_fine 
 stages_optimisation:
   
   #Splits a current file of cylinders into more cylinders and optimises radii
